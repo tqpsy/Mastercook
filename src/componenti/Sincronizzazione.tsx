@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { config } from '../config';
-import { collegaNucleo, esci, useAccount } from '../nucleo/account';
+import { googleConfigurato } from '../config';
+import { accedi, collegaNucleo, esci, useAccount } from '../nucleo/account';
 import { useNucleo } from '../nucleo/contesto';
 import { leggiNuclei } from '../nucleo/registro';
 import { riprendiSync, sincronizzaOra, useSync, type StatoSync } from '../nucleo/sync';
-import { richiediTokenDrive } from '../piattaforma/google';
-import { AccessoGoogle } from './AccessoGoogle';
+import { richiediToken, tokenValido } from '../piattaforma/google';
+import { BottoneGoogle } from './BottoneGoogle';
 import { mostraAvviso } from './ui';
 
 const DESCRIZIONE: Record<StatoSync, string> = {
@@ -17,33 +17,35 @@ const DESCRIZIONE: Record<StatoSync, string> = {
   errore: 'Sincronizzazione non riuscita.',
 };
 
-/** Account Google e collegamento del nucleo al proprio Google Drive. */
+export function messaggioErroreGoogle(e: unknown): string {
+  const testo = e instanceof Error ? e.message : '';
+  if (/popup_closed|negato|access_denied/i.test(testo)) return 'Accesso annullato: per salvare su Drive serve il permesso di Google.';
+  if (/popup_failed/i.test(testo)) return 'Il browser ha bloccato la finestra di Google: consenti i popup per questo sito e riprova.';
+  if (/rete|Failed to fetch/i.test(testo)) return 'Non riesco a contattare Google: controlla la connessione.';
+  if (/storageQuota/i.test(testo)) return 'Il tuo Google Drive è pieno.';
+  return `Non è andata a buon fine${testo ? ` (${testo})` : ''}: riprova.`;
+}
+
+/** Account Google e salvataggio del nucleo sul proprio Google Drive: un solo tocco. */
 export function Sincronizzazione() {
   const ctx = useNucleo();
-  const sessione = useAccount((s) => s.sessione);
+  const email = useAccount((s) => s.email);
   const sync = useSync();
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const configurato = !!(config.googleClientId && config.supabaseUrl && config.supabaseAnonKey);
   const collegato = !!leggiNuclei().find((n) => n.id === ctx.nucleo.id)?.drive;
 
   async function collega() {
     setInCorso(true);
     setErrore(null);
     try {
-      await richiediTokenDrive(sessione?.user.email);
+      if (!email) await accedi();
+      else if (!tokenValido()) await richiediToken(email);
       await collegaNucleo(ctx);
       sincronizzaOra();
-      mostraAvviso('Nucleo collegato al tuo Google Drive');
+      mostraAvviso('Fatto: i dati sono salvati anche sul tuo Google Drive');
     } catch (e) {
-      const testo = e instanceof Error ? e.message : '';
-      setErrore(
-        /popup|negato|access_denied/i.test(testo)
-          ? 'Serve il permesso di Google per creare i file su Drive: riprova e conferma.'
-          : /già collegato/i.test(testo)
-            ? 'Questo nucleo è già collegato a un altro account Google.'
-            : `Collegamento non riuscito: ${testo || 'riprova'}.`,
-      );
+      setErrore(messaggioErroreGoogle(e));
     } finally {
       setInCorso(false);
     }
@@ -56,30 +58,17 @@ export function Sincronizzazione() {
         <p>
           <strong>{collegato ? 'Su questo dispositivo + Google Drive' : 'Solo su questo dispositivo'}</strong>
         </p>
-        {!configurato ? (
-          <>
-            <p className="testo-tenue piccolo">
-              I dati sono salvati solo qui. Per usarli su altri telefoni e condividerli con la famiglia collega il tuo Google Drive: i
-              file restano sul tuo Drive, cifrati.
-            </p>
-            <p className="testo-tenue piccolo">L’accesso con Google sarà attivo appena l’app viene collegata al progetto Google Cloud.</p>
-          </>
-        ) : !sessione ? (
-          <>
-            <p className="testo-tenue piccolo">
-              Accedi con Google per salvare i dati sul tuo Drive, cifrati, e ritrovarli su tutti i tuoi dispositivi.
-            </p>
-            <AccessoGoogle />
-          </>
+        {!googleConfigurato() ? (
+          <p className="testo-tenue piccolo">
+            I dati sono salvati solo qui. Il salvataggio su Google Drive sarà disponibile a breve.
+          </p>
         ) : !collegato ? (
           <>
             <p className="testo-tenue piccolo">
-              Hai fatto l’accesso come {sessione.user.email}. Collega Drive: Masterfood crea una cartella “Masterfood” con i file del
-              nucleo cifrati e vede solo i file che crea lei.
+              Salva i dati sul tuo Google Drive per non perderli e ritrovarli sugli altri dispositivi. Sono cifrati: su Drive nessuno
+              può leggerli, e Masterfood vede solo i file che crea lei.
             </p>
-            <button type="button" className="bottone" disabled={inCorso} onClick={collega}>
-              {inCorso ? 'Collego…' : 'Collega Google Drive'}
-            </button>
+            <BottoneGoogle testo={inCorso ? 'Salvo su Drive…' : 'Accedi con Google e salva su Drive'} onClick={collega} disabled={inCorso} />
           </>
         ) : (
           <>
@@ -90,12 +79,13 @@ export function Sincronizzazione() {
                 : ''}
               {sync.messaggio ? ` ${sync.messaggio}` : ''}
             </p>
-            <p className="testo-tenue piccolo">Account: {sessione.user.email}</p>
+            {email && <p className="testo-tenue piccolo">Account: {email}</p>}
             <div className="azioni">
-              {sync.stato === 'pausa' ? (
-                <button type="button" className="bottone piccolo" onClick={() => riprendiSync().catch(() => mostraAvviso('Permesso non concesso'))}>
-                  Riprendi
-                </button>
+              {sync.stato === 'pausa' || !email ? (
+                <BottoneGoogle
+                  testo="Riprendi la sincronizzazione"
+                  onClick={() => (email ? riprendiSync() : accedi().then(sincronizzaOra)).catch((e) => setErrore(messaggioErroreGoogle(e)))}
+                />
               ) : (
                 <button type="button" className="bottone secondario piccolo" disabled={sync.stato === 'in_corso'} onClick={sincronizzaOra}>
                   Sincronizza ora
@@ -105,9 +95,16 @@ export function Sincronizzazione() {
           </>
         )}
         {errore && <p className="esito-errore">{errore}</p>}
-        {sessione && (
-          <button type="button" className="bottone-testo" onClick={() => esci().then(() => mostraAvviso('Sei uscito: i dati restano su questo dispositivo'))}>
-            Esci dall’account
+        {email && (
+          <button
+            type="button"
+            className="bottone-testo"
+            onClick={() => {
+              esci();
+              mostraAvviso('Sei uscito: i dati restano su questo dispositivo e su Drive');
+            }}
+          >
+            Esci dall’account Google
           </button>
         )}
       </div>

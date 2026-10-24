@@ -7,21 +7,21 @@ Web app installabile (PWA) per la gestione alimentare della famiglia: inventario
 ## Principi
 
 - **I dati del nucleo non passano dallo sviluppatore.** Inventario, lista, ricette, profili e allergie vivono in un documento CRDT [Yjs](https://yjs.dev) salvato in IndexedDB e, cifrato con AES-256-GCM sul dispositivo, sul Google Drive personale di chi crea il nucleo (scope `drive.file`, condiviso ai membri con Google Picker).
-- **Supabase (UE, Francoforte) solo per i metadati:** account, nuclei, ruoli, inviti, consensi, promemoria.
-- **Costo zero:** solo piani gratuiti (Cloudflare Pages, Supabase Free, API Google gratuite, Open Food Facts). OCR degli scontrini sul dispositivo con Tesseract.js. Google Vision e modelli AI solo con la chiave API dell'utente (BYOK), chiamati direttamente dal dispositivo.
+- **Nessun server:** l'accesso è con Google; chiave del nucleo ed elenco dei nuclei stanno nell'area nascosta dell'app sul Drive dell'utente (`appDataFolder`), i dati nella cartella "Masterfood - <nucleo>", cifrati.
+- **Costo zero:** solo piani gratuiti (GitHub Pages, API Google gratuite, Open Food Facts). OCR degli scontrini sul dispositivo con Tesseract.js. Google Vision e modelli AI solo con la chiave API dell'utente (BYOK), chiamati direttamente dal dispositivo.
 - **Sicurezza alimentare invalicabile:** 14 allergeni UE come filtro rigido prima di ogni suggerimento, limiti di conservazione che non si possono superare.
 - **Nessun segreto nel repository:** solo `.env.example` con valori pubblici lato client.
 
 ## Stack
 
-React 18 + TypeScript + Vite · vite-plugin-pwa (Workbox) · React Router · Zustand · Yjs + y-indexeddb · Supabase JS · Vitest.
+React 18 + TypeScript + Vite · vite-plugin-pwa (Workbox) · React Router · Zustand · Yjs + y-indexeddb · Google Identity Services · Vitest.
 
 ## Struttura
 
 ```
 src/
   App.tsx, main.tsx        router e avvio
-  config.ts                variabili VITE_* e scope Google
+  config.ts                ID client Google (pubblico) e scope
   componenti/              struttura, barra schede (Oggi · Casa · + · Lista · Ricette), avviso aggiornamento PWA
   pagine/                  schermate (per ora segnaposto)
   dominio/                 regole pure e testate
@@ -33,9 +33,7 @@ src/
   piattaforma/
     cifratura.ts           formato file .mfd cifrato AES-256-GCM
     documento.ts           documento Yjs, collezioni, IndexedDB, export/import cifrato
-    supabase.ts            client Supabase
   stato/                   stato UI (Zustand)
-supabase/migrations/       schema Postgres con Row Level Security
 public/                    icone PWA
 ```
 
@@ -59,28 +57,25 @@ L'app parte anche senza configurazione: in sviluppo mostra quali variabili manca
 | `npm run build` | controllo tipi e build di produzione in `dist/` |
 | `npm run preview` | serve la build, con service worker attivo |
 
-## Configurazione dei servizi
+## Accesso con Google e Google Drive
 
-**Supabase**
-1. Crea un progetto Free nella regione **Central EU (Frankfurt)**.
-2. Applica lo schema incollando, in ordine, i file `supabase/migrations/*.sql` nell'editor SQL del progetto (oppure con la CLI: `supabase init`, `supabase link --project-ref <id>`, `supabase db push`).
-3. In Authentication → Providers abilita Google con lo stesso client ID.
-4. Copia URL e chiave `anon` in `.env.local`.
+Una sola configurazione, fatta una volta dal proprietario dell'app in [Google Cloud Console](https://console.cloud.google.com/):
 
-**Google Cloud**
-1. Crea un progetto e la schermata di consenso OAuth con gli scope `openid`, `email`, `profile` e `https://www.googleapis.com/auth/drive.file` (non sensibile: basta la verifica gratuita del brand).
-2. Crea un client OAuth di tipo "Applicazione web" con le origini dell'app (`http://localhost:5173` e il dominio di pubblicazione, es. `https://<utente>.github.io`).
-3. Abilita Google Drive API e Google Picker API; crea una chiave API limitata al Picker e al dominio dell'app.
+1. Crea un progetto e abilita **Google Drive API**.
+2. Schermata di consenso OAuth: tipo *Esterno*, ambiti `openid`, `email`, `drive.file`, `drive.appdata` (tutti non sensibili), poi *Pubblica l'app*.
+3. Crea un **ID client OAuth** di tipo *Applicazione web* con origini `https://tqpsy.github.io` e `http://localhost:5173`.
+4. Metti l'ID client in `ID_CLIENT_GOOGLE` in `src/config.ts` (non è un segreto). Per provare un altro progetto in locale basta `VITE_GOOGLE_CLIENT_ID` in `.env.local`.
+
+Gli utenti poi toccano solo **Accedi con Google**: l'app crea la cartella su Drive, cifra i dati e li sincronizza.
 
 ## Pubblicazione su GitHub Pages (gratis)
 
 Il workflow `.github/workflows/pubblica.yml` pubblica l'app a ogni push su `main` all'indirizzo `https://<utente>.github.io/Mastercook/`.
 
 1. Una sola volta: **Settings → Pages → Source: GitHub Actions**.
-2. Facoltativo, per accesso Google e sync: in **Settings → Secrets and variables → Actions → Variables** aggiungi le variabili `VITE_*` di `.env.example` (sono valori pubblici, nessun segreto). Senza, l'app funziona in modalità "solo su questo dispositivo".
-3. Aggiungi l'indirizzo di Pages tra le origini autorizzate del client OAuth Google.
+2. Aggiungi l'indirizzo di Pages tra le origini autorizzate del client OAuth Google.
 
-In alternativa va bene anche **Cloudflare Pages**: comando di build `npm run build`, cartella `dist`, stesse variabili `VITE_*`.
+In alternativa va bene anche **Cloudflare Pages**: comando di build `npm run build`, cartella `dist`.
 
 ## Installarla sul telefono
 

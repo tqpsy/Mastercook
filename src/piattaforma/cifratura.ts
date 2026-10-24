@@ -23,7 +23,7 @@ export async function generaChiaveNucleo(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 }
 
-/** Esporta la chiave grezza (32 byte), da consegnare cifrata tramite Supabase Vault. */
+/** Esporta la chiave grezza (32 byte), salvata nell'archivio dell'account sul Drive dell'utente. */
 export async function esportaChiave(chiave: CryptoKey): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.exportKey('raw', chiave));
 }

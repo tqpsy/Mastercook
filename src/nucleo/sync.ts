@@ -11,7 +11,7 @@ import * as Y from 'yjs';
 import { create } from 'zustand';
 import { aggiornaFile, ErroreDrive, scaricaFile, versioneFile } from '../piattaforma/drive';
 import { decifraFile, cifraFile } from '../piattaforma/cifratura';
-import { richiediTokenDrive, tokenDriveValido } from '../piattaforma/google';
+import { richiediToken, tokenValido } from '../piattaforma/google';
 import { chiaveDelNucleo, emailAccount, useAccount, VERSIONE_CHIAVE } from './account';
 import { useNucleo } from './contesto';
 import { leggiNuclei } from './registro';
@@ -32,7 +32,7 @@ export const sincronizzaOra = () => useSync.setState((s) => ({ richiesta: s.rich
 
 /** Riprende dopo la pausa: va chiamata da un tocco, perché Google può aprire una finestra. */
 export async function riprendiSync(): Promise<void> {
-  await richiediTokenDrive(emailAccount());
+  await richiediToken(emailAccount());
   sincronizzaOra();
 }
 
@@ -63,7 +63,7 @@ export async function sincronizzaDocumento(doc: Y.Doc, fileId: string, chiave: C
 /** Motore montato dentro il nucleo corrente: non disegna nulla. */
 export function MotoreSync() {
   const { nucleo, dati, storico } = useNucleo();
-  const utente = useAccount((s) => s.sessione?.user.id);
+  const utente = useAccount((s) => s.email);
   const richiesta = useSync((s) => s.richiesta);
   const collegato = !!leggiNuclei().find((n) => n.id === nucleo.id)?.drive;
 
@@ -84,8 +84,9 @@ export function MotoreSync() {
         ancora = true;
         return;
       }
-      const file = leggiNuclei().find((n) => n.id === nucleo.id)?.drive;
-      if (!file) return;
+      const registrato = leggiNuclei().find((n) => n.id === nucleo.id);
+      const file = registrato?.drive;
+      if (!registrato || !file) return;
       if (!navigator.onLine) {
         useSync.setState({ stato: 'offline' });
         return;
@@ -93,13 +94,13 @@ export function MotoreSync() {
       inCorso = true;
       useSync.setState({ stato: 'in_corso' });
       try {
-        if (!tokenDriveValido()) {
+        if (!tokenValido()) {
           // Un solo tentativo silenzioso per sessione: poi si aspetta un tocco su "Riprendi".
           if (tentatoSilenzioso) throw new ErroreDrive(401, 'token');
           tentatoSilenzioso = true;
-          await richiediTokenDrive(emailAccount(), true);
+          await richiediToken(emailAccount(), true);
         }
-        const chiave = await chiaveDelNucleo(nucleo.id);
+        const chiave = await chiaveDelNucleo(registrato);
         await sincronizzaDocumento(dati, file.dati, chiave, remoti.dati);
         await sincronizzaDocumento(storico, file.storico, chiave, remoti.storico);
         useSync.setState({ stato: 'ok', ultima: new Date().toISOString(), messaggio: undefined });
