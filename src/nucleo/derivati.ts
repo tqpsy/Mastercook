@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 import { aggiungiGiorni } from '../dominio/date';
 import { articoliPresenti, calcolaDisponibilita, type ArticoloValutato, type Disponibilita } from '../dominio/disponibilita';
+import { porzioneEffettiva } from '../dominio/fabbisogni';
 import { dataLocale } from '../dominio/id';
 import type { ContestoSuggerimenti, Presente } from '../dominio/suggerimenti';
 import type { ArticoloInventario, EventoStorico, Membro, Ricetta } from '../dominio/tipi';
@@ -59,13 +60,13 @@ export function useMetaRicette(): Map<string, MetaRicetta> {
   return useMemo(() => new Map(meta.map((m) => [m.ricetta_id, m])), [meta]);
 }
 
-export function presenteDa(m: Membro): Presente {
+export function presenteDa(m: Membro, oggi = dataLocale()): Presente {
   return {
     nome: m.nome,
     allergie: m.allergie ?? [],
     restrizioni: m.restrizioni ?? [],
     sgraditi: m.preferenze?.sgraditi ?? [],
-    fattore_porzione: m.fattore_porzione ?? 1,
+    fattore_porzione: porzioneEffettiva(m, oggi),
   };
 }
 
@@ -77,7 +78,7 @@ export function useContestoSuggerimenti(membriPresenti?: readonly string[]): Con
   const eventi = useCollezione<EventoStorico>('eventi', { documento: 'storico' });
   const oggi = useOggi();
   return useMemo(() => {
-    const presenti = membri.filter((m) => m.attivo !== false && (!membriPresenti || membriPresenti.includes(m.id))).map(presenteDa);
+    const presenti = membri.filter((m) => m.attivo !== false && (!membriPresenti || membriPresenti.includes(m.id))).map((m) => presenteDa(m, oggi));
     const limite = aggiungiGiorni(oggi, -5);
     const recenti = new Set(eventi.filter((e) => e.tipo === 'preparazione' && e.il.slice(0, 10) >= limite && e.motivo).map((e) => e.motivo!));
     return {

@@ -55,7 +55,7 @@ function pesoGrammi(quantita: number, unita: UnitaCanonica, ingredienteId?: stri
 export type DatiMembro = Pick<
   Membro,
   'nome' | 'allergie' | 'intolleranze' | 'escludi_tracce' | 'restrizioni' | 'preferenze' | 'fattore_porzione' | 'attivo'
-> & { data_nascita?: string; utente_id?: string };
+> & Partial<Pick<Membro, 'data_nascita' | 'sesso' | 'condizione' | 'porzione_automatica' | 'utente_id'>>;
 
 export function salvaMembro(ctx: Ctx, dati: DatiMembro, id?: string): string {
   const membri = collezione(ctx.dati, 'membri');
