@@ -63,7 +63,7 @@ L'app parte anche senza configurazione: in sviluppo mostra quali variabili manca
 
 **Supabase**
 1. Crea un progetto Free nella regione **Central EU (Frankfurt)**.
-2. Applica lo schema incollando `supabase/migrations/*.sql` nell'editor SQL del progetto (oppure con la CLI: `supabase init`, `supabase link --project-ref <id>`, `supabase db push`).
+2. Applica lo schema incollando, in ordine, i file `supabase/migrations/*.sql` nell'editor SQL del progetto (oppure con la CLI: `supabase init`, `supabase link --project-ref <id>`, `supabase db push`).
 3. In Authentication → Providers abilita Google con lo stesso client ID.
 4. Copia URL e chiave `anon` in `.env.local`.
 
@@ -97,10 +97,9 @@ Le decisioni da cui nasce questo codice sono nel [riepilogo del progetto](https:
 
 ## Stato
 
-Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino con Tesseract.js (o Google Vision con chiave propria), foto di frigo e dispensa (riconoscimento con chiave Gemini propria), ricette di sistema e personali, suggerimenti filtrati per allergie, "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON.
+Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino con Tesseract.js (o Google Vision con chiave propria), foto di frigo e dispensa (riconoscimento con chiave Gemini propria), ricette di sistema e personali, suggerimenti filtrati per allergie, accesso con Google e sincronizzazione cifrata sul Google Drive dell'amministratore, "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON.
 
 ## Prossimi passi
 
-1. **Accesso Google e Supabase:** GIS → `signInWithIdToken`, consensi, nucleo e inviti sul server (schema già in `supabase/migrations/`).
-2. **Sync con Google Drive:** file cifrati AES-GCM (`src/piattaforma/cifratura.ts`) sul Drive dell'amministratore, `drive.file` e Picker per i membri.
-3. **Promemoria push** per le scadenze e piano della settimana.
+1. **Inviti per i familiari:** codice o email, condivisione dei file Drive (`permissions.create`) e conferma del membro con Google Picker.
+2. **Promemoria push** per le scadenze e piano della settimana.

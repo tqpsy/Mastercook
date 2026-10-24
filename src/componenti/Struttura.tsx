@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useNucleo } from '../nucleo/contesto';
 import { AggiornamentoPwa } from './AggiornamentoPwa';
+import { AvvisoSync } from './AvvisoSync';
 import { BarraSchede } from './BarraSchede';
 import { IconaImpostazioni } from './Icone';
 import { AvvisoFlottante } from './ui';
@@ -28,6 +29,7 @@ export function Struttura() {
         <Outlet />
       </main>
       <AggiornamentoPwa />
+      <AvvisoSync />
       <AvvisoFlottante />
       <BarraSchede />
     </div>
