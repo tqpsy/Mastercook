@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { AccessoGoogle } from '../componenti/AccessoGoogle';
+import { BottoneGoogle } from '../componenti/BottoneGoogle';
 import { ModuloMembro, membroVuoto } from '../componenti/ModuloMembro';
-import { config } from '../config';
-import { recuperaNuclei, useAccount } from '../nucleo/account';
-import { richiediTokenDrive } from '../piattaforma/google';
+import { messaggioErroreGoogle } from '../componenti/Sincronizzazione';
+import { googleConfigurato } from '../config';
+import { accedi, recuperaNuclei } from '../nucleo/account';
 import { creaNucleoLocale } from '../nucleo/crea';
 import { useSessione } from '../stato/sessione';
 
@@ -16,9 +16,8 @@ const PUNTI = [
 
 export function Benvenuto() {
   const [passo, setPasso] = useState<'intro' | 'nucleo' | 'accedi'>('intro');
-  const sessione = useAccount((s) => s.sessione);
   const [errore, setErrore] = useState<string | null>(null);
-  const configurato = !!(config.googleClientId && config.supabaseUrl && config.supabaseAnonKey);
+  const configurato = googleConfigurato();
   const [nomeNucleo, setNomeNucleo] = useState('Casa');
   const [inCorso, setInCorso] = useState(false);
   const scegliNucleo = useSessione((s) => s.scegliNucleo);
@@ -62,36 +61,26 @@ export function Benvenuto() {
       <main className="benvenuto">
         <div className="saluto">
           <h1>Ritrova il tuo nucleo</h1>
-          <p className="sottotitolo">Accedi con l’account Google che hai usato per collegare Drive: scarico i dati cifrati su questo dispositivo.</p>
+          <p className="sottotitolo">Accedi con l’account Google su cui hai salvato i dati: li scarico su questo dispositivo.</p>
         </div>
-        {!sessione ? (
-          <AccessoGoogle />
-        ) : (
-          <>
-            <p className="testo-tenue">Accesso come {sessione.user.email}.</p>
-            <button
-              type="button"
-              className="bottone pieno"
-              disabled={inCorso}
-              onClick={async () => {
-                setInCorso(true);
-                setErrore(null);
-                try {
-                  await richiediTokenDrive(sessione.user.email);
-                  const id = await recuperaNuclei();
-                  if (id) scegliNucleo(id);
-                  else setErrore('Non trovo nuclei collegati a Drive per questo account. Puoi crearne uno nuovo.');
-                } catch {
-                  setErrore('Non sono riuscito a scaricare i dati da Drive. Controlla la connessione e il permesso di Google e riprova.');
-                } finally {
-                  setInCorso(false);
-                }
-              }}
-            >
-              {inCorso ? 'Scarico i dati…' : 'Apri i dati da Google Drive'}
-            </button>
-          </>
-        )}
+        <BottoneGoogle
+          testo={inCorso ? 'Scarico i dati…' : 'Accedi con Google'}
+          disabled={inCorso}
+          onClick={async () => {
+            setInCorso(true);
+            setErrore(null);
+            try {
+              await accedi();
+              const id = await recuperaNuclei();
+              if (id) scegliNucleo(id);
+              else setErrore('Su questo account Google non c’è ancora un nucleo salvato. Puoi crearne uno nuovo.');
+            } catch (e) {
+              setErrore(messaggioErroreGoogle(e));
+            } finally {
+              setInCorso(false);
+            }
+          }}
+        />
         {errore && <p className="esito-errore">{errore}</p>}
         <button type="button" className="bottone-testo" onClick={() => setPasso('nucleo')}>
           Crea invece un nuovo nucleo

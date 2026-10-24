@@ -1,8 +1,7 @@
 # Pubblica l'app su GitHub Pages a ogni push su main.
 # Una tantum: Settings → Pages → Source: "GitHub Actions".
-# Le variabili VITE_* (tutte pubbliche, nessun segreto) si impostano in
-# Settings → Secrets and variables → Actions → Variables; se mancano l'app
-# funziona in modalità "solo su questo dispositivo".
+# L'ID client Google sta in src/config.ts; la variabile VITE_GOOGLE_CLIENT_ID
+# (Settings → Secrets and variables → Actions → Variables) è solo un'alternativa.
 name: Pubblica
 
 on:
@@ -33,11 +32,7 @@ jobs:
       - run: npm run build
         env:
           BASE_URL_APP: /${{ github.event.repository.name }}/
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
-          VITE_GOOGLE_PICKER_API_KEY: ${{ vars.VITE_GOOGLE_PICKER_API_KEY }}
-          VITE_GOOGLE_APP_ID: ${{ vars.VITE_GOOGLE_APP_ID }}
       # GitHub Pages non conosce le rotte dell'app: 404.html rimanda a index.html.
       - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5

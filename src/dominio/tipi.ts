@@ -13,7 +13,7 @@ import type { RicettaBase } from '../rif/ricette';
 export type DataLocale = string;
 /** Istante ISO 8601 in UTC. */
 export type Istante = string;
-/** Id del profilo nel documento (ponte: appartenenze.membro_id su Supabase). */
+/** Id del profilo nel documento. */
 export type MembroId = string;
 
 export interface MetadatiComuni {

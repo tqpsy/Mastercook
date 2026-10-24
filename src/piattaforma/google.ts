@@ -1,28 +1,20 @@
 /**
- * Google Identity Services: pulsante "Accedi con Google" (ID token per Supabase) e token
- * di accesso a Drive con lo scope drive.file. Il token Drive dura circa un'ora e resta
- * solo in memoria; nessun refresh token, nessun segreto.
+ * Accesso con Google tramite Google Identity Services (modello a token): un solo consenso
+ * per identità, file creati dall'app su Drive e area nascosta dell'app. Il token dura circa
+ * un'ora e resta solo in memoria: nessun refresh token, nessun server, nessun segreto.
  */
-import { config, SCOPE_DRIVE } from '../config';
+import { config, SCOPE_GOOGLE } from '../config';
 
-interface RispostaCredenziale {
-  credential: string;
-}
 interface RispostaToken {
   access_token?: string;
   expires_in?: number;
   error?: string;
 }
 interface ClientToken {
-  requestAccessToken(opzioni?: { prompt?: '' | 'consent'; login_hint?: string }): void;
+  requestAccessToken(opzioni?: { prompt?: '' | 'consent' | 'select_account'; login_hint?: string }): void;
 }
 interface Gis {
   accounts: {
-    id: {
-      initialize(o: { client_id: string; callback: (r: RispostaCredenziale) => void; nonce?: string; use_fedcm_for_button?: boolean }): void;
-      renderButton(el: HTMLElement, o: Record<string, unknown>): void;
-      disableAutoSelect(): void;
-    };
     oauth2: {
       initTokenClient(o: {
         client_id: string;
@@ -59,63 +51,44 @@ export function caricaGis(): Promise<Gis> {
   return caricamento;
 }
 
-function esadecimale(byte: ArrayBuffer): string {
-  return [...new Uint8Array(byte)].map((b) => b.toString(16).padStart(2, '0')).join('');
+let token: { valore: string; scade: number } | null = null;
+
+export function tokenValido(): string | null {
+  return token && token.scade > Date.now() + 60_000 ? token.valore : null;
 }
 
 /**
- * Disegna il pulsante ufficiale Google. Il nonce grezzo va a Supabase, a Google il suo SHA-256,
- * così l'ID token non può essere riusato.
+ * Chiede a Google il token. Senza `silenzioso` va chiamata da un tocco dell'utente perché
+ * apre la finestra di Google; con `silenzioso` e l'email nota di solito si chiude da sola.
  */
-export async function mostraPulsanteGoogle(contenitore: HTMLElement, onToken: (idToken: string, nonce: string) => void): Promise<void> {
-  const gis = await caricaGis();
-  const nonce = esadecimale(crypto.getRandomValues(new Uint8Array(16)).buffer);
-  const nonceHash = esadecimale(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce)));
-  gis.accounts.id.initialize({
-    client_id: config.googleClientId,
-    nonce: nonceHash,
-    use_fedcm_for_button: true,
-    callback: (r) => onToken(r.credential, nonce),
-  });
-  contenitore.replaceChildren();
-  gis.accounts.id.renderButton(contenitore, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', locale: 'it', width: 280 });
-}
-
-let tokenDrive: { valore: string; scade: number } | null = null;
-
-export function tokenDriveValido(): string | null {
-  return tokenDrive && tokenDrive.scade > Date.now() + 60_000 ? tokenDrive.valore : null;
-}
-
-export function dimenticaTokenDrive(): void {
-  tokenDrive = null;
-}
-
-/**
- * Chiede a Google il token per Drive. La prima volta va chiamata da un tocco dell'utente
- * (apre la finestra di consenso); dopo, con `silenzioso`, di solito si chiude da sola.
- */
-export async function richiediTokenDrive(email?: string, silenzioso = false): Promise<string> {
+export async function richiediToken(email?: string, silenzioso = false): Promise<string> {
   const gis = await caricaGis();
   return new Promise<string>((ok, ko) => {
     const client = gis.accounts.oauth2.initTokenClient({
       client_id: config.googleClientId,
-      scope: SCOPE_DRIVE,
+      scope: SCOPE_GOOGLE,
       callback: (r) => {
         if (!r.access_token) return ko(new Error(r.error ?? 'negato'));
-        tokenDrive = { valore: r.access_token, scade: Date.now() + (r.expires_in ?? 3600) * 1000 };
+        token = { valore: r.access_token, scade: Date.now() + (r.expires_in ?? 3600) * 1000 };
         ok(r.access_token);
       },
       error_callback: (e) => ko(new Error(e.type)),
     });
-    client.requestAccessToken({ prompt: silenzioso ? '' : undefined, login_hint: email });
+    client.requestAccessToken({ prompt: silenzioso ? '' : email ? undefined : 'select_account', login_hint: email });
   });
 }
 
-export async function esciDaGoogle(): Promise<void> {
-  const token = tokenDrive?.valore;
-  tokenDrive = null;
-  const gis = window.google;
-  gis?.accounts.id.disableAutoSelect();
-  if (token) gis?.accounts.oauth2.revoke(token);
+/** Email dell'account appena collegato. */
+export async function leggiEmail(): Promise<string> {
+  const valore = tokenValido();
+  if (!valore) throw new Error('token');
+  const r = await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${valore}` } });
+  if (!r.ok) throw new Error('userinfo');
+  return ((await r.json()) as { email: string }).email;
+}
+
+export function esciDaGoogle(): void {
+  const valore = token?.valore;
+  token = null;
+  if (valore) window.google?.accounts.oauth2.revoke(valore);
 }
