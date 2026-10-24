@@ -64,7 +64,7 @@ export function inserisciEntita<T extends Omit<MetadatiComuni, 'creato_da' | 'cr
 ): Entita {
   const entita = new Y.Map<unknown>();
   coll.doc!.transact(() => {
-    for (const [campo, valore] of Object.entries(dati)) entita.set(campo, valore);
+    for (const [campo, valore] of Object.entries(dati)) if (valore !== undefined) entita.set(campo, valore);
     entita.set('creato_da', autore);
     entita.set('creato_il', adesso);
     entita.set('modificato_da', autore);
@@ -77,7 +77,10 @@ export function inserisciEntita<T extends Omit<MetadatiComuni, 'creato_da' | 'cr
 /** Aggiorna dei campi lasciando traccia dell'autore ("modificato da Maria"). */
 export function modificaEntita(entita: Entita, campi: Record<string, unknown>, autore: MembroId, adesso: string = new Date().toISOString()): void {
   entita.doc!.transact(() => {
-    for (const [campo, valore] of Object.entries(campi)) entita.set(campo, valore);
+    for (const [campo, valore] of Object.entries(campi)) {
+      if (valore === undefined) entita.delete(campo);
+      else entita.set(campo, valore);
+    }
     entita.set('modificato_da', autore);
     entita.set('modificato_il', adesso);
   });

@@ -6,6 +6,7 @@
 import type { Allergene } from './allergeni';
 import type { GruppoNova, NutriScore, Voto } from './genuinita';
 import type { TipoPasto } from './id';
+import type { RicettaBase } from '../rif/ricette';
 
 /** Data locale Europe/Rome, AAAA-MM-GG. */
 export type DataLocale = string;
@@ -83,6 +84,11 @@ export interface Movimento {
 }
 
 export interface ArticoloInventario extends MetadatiComuni {
+  /** Copia del nome mostrato (prodotto, ingrediente o piatto cotto). */
+  nome: string;
+  /** Ingrediente generico, copiato dal prodotto per i calcoli di disponibilità. */
+  ingrediente_id?: string;
+  unita: UnitaCanonica;
   prodotto_id?: string;
   /** Per i cotti e gli avanzi. */
   ricetta_id?: string;
@@ -115,19 +121,8 @@ export interface RigaIngrediente {
 
 export type Portata = 'antipasto' | 'primo' | 'secondo' | 'contorno' | 'piatto_unico' | 'dolce' | 'colazione';
 
-export interface Ricetta extends MetadatiComuni {
-  /** `sys:<slug>` per le ricette di sistema, UUIDv7 per le personali. */
-  origine: 'sistema' | 'personale';
-  derivata_da?: string;
-  titolo: string;
-  portata: Portata;
-  porzioni_base: number;
-  ingredienti: RigaIngrediente[];
-  passaggi: string[];
-  allergeni_dichiarati: Allergene[];
-  categoria_conservazione?: string;
-  mesi_stagione?: number[];
-}
+/** Stesso schema per ricette di sistema (`sys:<slug>`) e personali (UUIDv7). */
+export type Ricetta = RicettaBase & Partial<MetadatiComuni>;
 
 export type OrigineRigaLista = 'ricetta' | 'scorta' | 'manuale' | 'dieta' | 'ospiti';
 
@@ -135,7 +130,10 @@ export interface ArticoloLista extends MetadatiComuni {
   /** `art:<ingrediente_id>` o `art:txt:<slug>`. */
   ingrediente_id?: string;
   testo: string;
-  origini: { tipo: OrigineRigaLista; riferimento?: string; quantita_g?: number; membri: MembroId[] }[];
+  /** Reparto scelto a mano per le righe a testo libero. */
+  reparto?: string;
+  /** Quantità nell'unità dell'ingrediente; assente = "ricordami di comprarlo". */
+  origini: { tipo: OrigineRigaLista; riferimento?: string; titolo?: string; quantita?: number; membri: MembroId[] }[];
   stato: 'da_comprare' | 'preso' | 'rimosso';
   modo_spunta?: 'manuale' | 'barcode' | 'scontrino';
   presa_g?: number;

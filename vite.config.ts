@@ -1,9 +1,17 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const pacchetto = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
+
+// BASE_URL: "/" su Cloudflare Pages, "/Mastercook/" su GitHub Pages (impostato dal workflow).
+const base = process.env.BASE_URL_APP ?? '/';
+
 export default defineConfig({
+  base,
+  define: { __VERSIONE_APP__: JSON.stringify(pacchetto.version) },
   plugins: [
     react(),
     VitePWA({
@@ -14,8 +22,9 @@ export default defineConfig({
         short_name: 'Masterfood',
         description: 'La spesa, la dispensa e le ricette della tua famiglia',
         lang: 'it',
-        start_url: '/',
-        scope: '/',
+        id: base,
+        start_url: base,
+        scope: base,
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#f7f8f3',
@@ -28,11 +37,17 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         runtimeCaching: [
           {
+            // Motori di OCR e lettura codici (Tesseract.js, ZXing): scaricati la prima volta, poi offline.
+            urlPattern: ({ url }) => url.hostname.endsWith('jsdelivr.net'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'masterfood-motori', expiration: { maxEntries: 30 }, cacheableResponse: { statuses: [0, 200] } },
+          },
+          {
             // Dati di riferimento statici e versionati (/rif/v<n>/): una volta scaricati non cambiano.
-            urlPattern: ({ url }) => url.pathname.startsWith('/rif/'),
+            urlPattern: ({ url }) => url.pathname.includes('/rif/'),
             handler: 'CacheFirst',
             options: { cacheName: 'masterfood-rif', expiration: { maxEntries: 100 } },
           },
