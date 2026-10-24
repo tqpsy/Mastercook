@@ -4,6 +4,7 @@
  * I campi derivati (quantità, scadenza effettiva, allergeni ricetta, da comprare…) non si salvano.
  */
 import type { Allergene } from './allergeni';
+import type { Condizione, Sesso } from './fabbisogni';
 import type { GruppoNova, NutriScore, Voto } from './genuinita';
 import type { TipoPasto } from './id';
 import type { RicettaBase } from '../rif/ricette';
@@ -35,13 +36,19 @@ export interface Membro extends MetadatiComuni {
   gestito_da?: MembroId;
   nome: string;
   data_nascita?: DataLocale;
+  /** Facoltativo, serve solo per i fabbisogni LARN; se manca si usa la media per età. */
+  sesso?: Sesso;
+  /** Solo donne in età fertile. Dato relativo alla salute. */
+  condizione?: Condizione;
   allergie: Allergene[];
   intolleranze: string[];
   escludi_tracce: boolean;
   restrizioni: Restrizione[];
   preferenze: { graditi: string[]; sgraditi: string[] };
-  /** Adulto 1,0; da 0,3 a 1,8. */
+  /** Adulto 1,0; da 0,3 a 1,8. Scelta a mano, o di riserva se manca la data di nascita. */
   fattore_porzione: number;
+  /** Se non è false e c'è la data di nascita, la porzione si calcola dai fabbisogni. */
+  porzione_automatica?: boolean;
   attivo: boolean;
 }
 

@@ -1044,3 +1044,16 @@ fieldset.campo {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.esito-ok,
+.esito-errore {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.esito-ok {
+  color: var(--oliva);
+}
+.esito-errore {
+  color: var(--rosso);
+}

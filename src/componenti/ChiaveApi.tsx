@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { leggiChiave, scriviChiave, type Fornitore } from '../piattaforma/chiaviApi';
+import { verificaChiave, type EsitoVerifica } from '../piattaforma/verificaChiave';
 import { mostraAvviso } from './ui';
 
 const FORNITORI: { id: Fornitore; nome: string; uso: string; guida: string }[] = [
@@ -18,6 +19,7 @@ const FORNITORI: { id: Fornitore; nome: string; uso: string; guida: string }[] =
 ];
 
 export function ChiaveApi() {
+  const [esiti, setEsiti] = useState<Partial<Record<Fornitore, EsitoVerifica | 'in_corso'>>>({});
   const [valori, setValori] = useState(() => Object.fromEntries(FORNITORI.map((f) => [f.id, leggiChiave(f.id)])) as Record<Fornitore, string>);
   return (
     <div className="sezione">
@@ -44,7 +46,10 @@ export function ChiaveApi() {
               autoComplete="off"
               value={valori[f.id]}
               placeholder="Incolla la chiave"
-              onChange={(e) => setValori((v) => ({ ...v, [f.id]: e.target.value }))}
+              onChange={(e) => {
+                setValori((v) => ({ ...v, [f.id]: e.target.value }));
+                setEsiti((x) => ({ ...x, [f.id]: undefined }));
+              }}
             />
             <small>
               Serve a: {f.uso}.{' '}
@@ -53,9 +58,31 @@ export function ChiaveApi() {
               </a>
             </small>
           </label>
-          <button type="submit" className="bottone secondario piccolo" style={{ alignSelf: 'flex-start' }}>
-            Salva
-          </button>
+          <div className="azioni">
+            <button
+              type="button"
+              className="bottone secondario piccolo"
+              disabled={!valori[f.id].trim() || esiti[f.id] === 'in_corso'}
+              onClick={async () => {
+                setEsiti((x) => ({ ...x, [f.id]: 'in_corso' }));
+                const esito = await verificaChiave(f.id, valori[f.id]);
+                // Una chiave che funziona si salva subito.
+                if (esito.ok) scriviChiave(f.id, valori[f.id].trim());
+                setEsiti((x) => ({ ...x, [f.id]: esito.ok ? { ok: true, messaggio: 'Chiave valida e salvata su questo dispositivo.' } : esito }));
+              }}
+            >
+              {esiti[f.id] === 'in_corso' ? 'Verifico…' : 'Verifica'}
+            </button>
+            <button type="submit" className="bottone secondario piccolo">
+              Salva
+            </button>
+          </div>
+          {esiti[f.id] && esiti[f.id] !== 'in_corso' && (
+            <p role="status" className={(esiti[f.id] as EsitoVerifica).ok ? 'esito-ok' : 'esito-errore'}>
+              {(esiti[f.id] as EsitoVerifica).ok ? '✓ ' : '✗ '}
+              {(esiti[f.id] as EsitoVerifica).messaggio}
+            </p>
+          )}
         </form>
       ))}
     </div>

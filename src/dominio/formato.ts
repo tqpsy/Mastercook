@@ -28,3 +28,9 @@ export function formattaQuantita(quantita: number, unita: UnitaCanonica, ing?: I
 export function formattaEuro(valore: number): string {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(valore);
 }
+
+const NUMERO = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 });
+
+export function formattaNumero(valore: number): string {
+  return NUMERO.format(valore);
+}

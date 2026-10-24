@@ -1,5 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import { ALLERGENI_UE, CODICI_ALLERGENI, type Allergene } from '../dominio/allergeni';
+import {
+  calcolaFabbisogno,
+  etaInAnni,
+  fattoreDaFabbisogno,
+  puoAvereCondizione,
+  type Condizione,
+  type Sesso,
+} from '../dominio/fabbisogni';
+import { formattaNumero } from '../dominio/formato';
+import { dataLocale } from '../dominio/id';
 import type { Restrizione } from '../dominio/tipi';
 import type { DatiMembro } from '../nucleo/azioni';
 import { ingrediente } from '../rif/ingredienti';
@@ -10,6 +20,18 @@ export const PORZIONI = [
   { fattore: 1, nome: 'Normale', dettaglio: 'adulti' },
   { fattore: 1.3, nome: 'Abbondante', dettaglio: 'più appetito' },
 ] as const;
+
+const SESSI: { id: Sesso | undefined; nome: string }[] = [
+  { id: 'femmina', nome: 'Femmina' },
+  { id: 'maschio', nome: 'Maschio' },
+  { id: undefined, nome: 'Non indicato' },
+];
+
+const CONDIZIONI: { id: Condizione | undefined; nome: string }[] = [
+  { id: undefined, nome: 'Nessuna' },
+  { id: 'gravidanza', nome: 'In gravidanza' },
+  { id: 'allattamento', nome: 'Allatta' },
+];
 
 const RESTRIZIONI: { id: Restrizione; nome: string }[] = [
   { id: 'vegetariano', nome: 'Vegetariano' },
@@ -48,14 +70,26 @@ export function ModuloMembro({
 }) {
   const [dati, setDati] = useState<DatiMembro>(iniziale);
   const [consenso, setConsenso] = useState(!chiediConsenso || iniziale.allergie.length > 0);
-  const servoConsenso = chiediConsenso && (dati.allergie.length > 0 || dati.intolleranze.length > 0);
+  const servoConsenso = chiediConsenso && (dati.allergie.length > 0 || dati.intolleranze.length > 0 || !!dati.condizione);
+  const oggi = dataLocale();
+  const eta = dati.data_nascita && dati.data_nascita <= oggi ? etaInAnni(dati.data_nascita, oggi) : undefined;
+  const conCondizione = puoAvereCondizione(dati.sesso, eta);
+  const fabbisogno = eta !== undefined ? calcolaFabbisogno(eta, dati.sesso, conCondizione ? dati.condizione : undefined) : undefined;
+  const automatica = !!fabbisogno && dati.porzione_automatica !== false;
   const valido = dati.nome.trim().length > 0 && (!servoConsenso || consenso);
 
   const aggiorna = (campi: Partial<DatiMembro>) => setDati((d) => ({ ...d, ...campi }));
 
   function invia(e: FormEvent) {
     e.preventDefault();
-    if (valido) onInvia({ ...dati, nome: dati.nome.trim() });
+    if (!valido) return;
+    onInvia({
+      ...dati,
+      nome: dati.nome.trim(),
+      condizione: conCondizione ? dati.condizione : undefined,
+      // Tiene un valore di riserva coerente anche per chi legge solo fattore_porzione.
+      fattore_porzione: automatica ? fattoreDaFabbisogno(fabbisogno) : dati.fattore_porzione,
+    });
   }
 
   return (
@@ -66,16 +100,59 @@ export function ModuloMembro({
         <input value={dati.nome} onChange={(e) => aggiorna({ nome: e.target.value })} placeholder="Es. Luca" autoComplete="given-name" required />
       </label>
 
+      <label className="campo">
+        <span>Data di nascita (facoltativa)</span>
+        <input type="date" value={dati.data_nascita ?? ''} max={oggi} onChange={(e) => aggiorna({ data_nascita: e.target.value || undefined })} />
+      </label>
+
+      <fieldset className="campo">
+        <legend>Sesso (facoltativo)</legend>
+        <div className="chips">
+          {SESSI.map((x) => (
+            <Chip key={x.nome} attivo={dati.sesso === x.id} onClick={() => aggiorna({ sesso: x.id })}>
+              {x.nome}
+            </Chip>
+          ))}
+        </div>
+        <small>I fabbisogni cambiano tra maschi e femmine della stessa età. Se non lo indichi usiamo la media.</small>
+      </fieldset>
+
+      {conCondizione && (
+        <fieldset className="campo">
+          <legend>Gravidanza o allattamento</legend>
+          <div className="chips">
+            {CONDIZIONI.map((x) => (
+              <Chip key={x.nome} attivo={dati.condizione === x.id} onClick={() => aggiorna({ condizione: x.id })}>
+                {x.nome}
+              </Chip>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
       <fieldset className="campo">
         <legend>Porzione</legend>
         <div className="chips">
+          {fabbisogno && (
+            <Chip attivo={automatica} onClick={() => aggiorna({ porzione_automatica: true })}>
+              Automatica <span className="testo-tenue piccolo">×{formattaNumero(fattoreDaFabbisogno(fabbisogno))}</span>
+            </Chip>
+          )}
           {PORZIONI.map((p) => (
-            <Chip key={p.fattore} attivo={dati.fattore_porzione === p.fattore} onClick={() => aggiorna({ fattore_porzione: p.fattore })}>
+            <Chip
+              key={p.fattore}
+              attivo={!automatica && dati.fattore_porzione === p.fattore}
+              onClick={() => aggiorna({ fattore_porzione: p.fattore, porzione_automatica: false })}
+            >
               {p.nome} <span className="testo-tenue piccolo">{p.dettaglio}</span>
             </Chip>
           ))}
         </div>
-        <small>Serve a calcolare le quantità delle ricette e della spesa.</small>
+        <small>
+          {fabbisogno
+            ? `Fabbisogno indicativo (LARN): circa ${formattaNumero(fabbisogno.energia_kcal)} kcal, ${fabbisogno.proteine_g} g di proteine e ${fabbisogno.ferro_mg} mg di ferro al giorno. Serve a calcolare le quantità delle ricette e della spesa.`
+            : 'Serve a calcolare le quantità delle ricette e della spesa. Con la data di nascita la calcoliamo noi dai fabbisogni per età e sesso.'}
+        </small>
       </fieldset>
 
       <fieldset className="campo">
@@ -134,8 +211,8 @@ export function ModuloMembro({
         <label className="spunta riquadro avviso">
           <input type="checkbox" checked={consenso} onChange={(e) => setConsenso(e.target.checked)} />
           <span>
-            Acconsento al trattamento dei dati sulle allergie, che sono dati relativi alla salute, per filtrare ricette e
-            prodotti. Restano cifrati nei dati del nucleo e non arrivano mai ai server di Masterfood.
+            Acconsento al trattamento dei dati su allergie, gravidanza e allattamento, che sono dati relativi alla salute,
+            per filtrare ricette e prodotti e calcolare le porzioni. Restano cifrati nei dati del nucleo e non arrivano mai ai server di Masterfood.
           </span>
         </label>
       )}
