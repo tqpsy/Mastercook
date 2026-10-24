@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { Struttura } from './componenti/Struttura';
 import { ProviderNucleo } from './nucleo/contesto';
+import { MotoreSync } from './nucleo/sync';
 import { leggiNuclei } from './nucleo/registro';
 import { Benvenuto } from './pagine/Benvenuto';
 import { Casa } from './pagine/Casa';
@@ -58,6 +59,7 @@ export function App() {
   if (!esistente) return <Benvenuto />;
   return (
     <ProviderNucleo key={esistente} nucleoId={esistente} attesa={<Caricamento />}>
+      <MotoreSync />
       <RouterProvider router={router} />
     </ProviderNucleo>
   );
