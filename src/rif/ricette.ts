@@ -1,0 +1,187 @@
+/**
+ * Ricette di sistema, versione 1. Quantità per le porzioni indicate, nell'unità dell'ingrediente
+ * (g, ml o pezzi). Gli allergeni effettivi si calcolano sempre come dichiarati ∪ ingredienti.
+ */
+import type { Allergene } from '../dominio/allergeni';
+import type { Portata, RigaIngrediente } from '../dominio/tipi';
+import { INGREDIENTI_PER_ID } from './ingredienti';
+
+export interface RicettaBase {
+  id: string;
+  origine: 'sistema' | 'personale';
+  titolo: string;
+  portata: Portata;
+  porzioni_base: number;
+  minuti: number;
+  difficolta: 1 | 2 | 3;
+  ingredienti: RigaIngrediente[];
+  passaggi: string[];
+  allergeni_dichiarati: Allergene[];
+  categoria_conservazione?: string;
+  mesi_stagione?: number[];
+  derivata_da?: string;
+}
+
+type Riga = [slug: string, quantita: number, opzioni?: { opzionale?: boolean; testo?: string }];
+
+function r(
+  slug: string,
+  titolo: string,
+  portata: Portata,
+  minuti: number,
+  difficolta: 1 | 2 | 3,
+  categoria: string | undefined,
+  righe: Riga[],
+  passaggi: string[],
+  extra: { porzioni?: number; mesi?: number[]; allergeni?: Allergene[] } = {},
+): RicettaBase {
+  return {
+    id: `sys:${slug}`,
+    origine: 'sistema',
+    titolo,
+    portata,
+    porzioni_base: extra.porzioni ?? 4,
+    minuti,
+    difficolta,
+    categoria_conservazione: categoria,
+    mesi_stagione: extra.mesi,
+    allergeni_dichiarati: extra.allergeni ?? [],
+    passaggi,
+    ingredienti: righe.map(([ing, quantita, opzioni]) => {
+      const dati = INGREDIENTI_PER_ID.get(`ing:${ing}`);
+      if (!dati) throw new Error(`Ingrediente sconosciuto nella ricetta ${slug}: ${ing}`);
+      return {
+        ingrediente_id: dati.id,
+        testo: opzioni?.testo ?? dati.nome,
+        quantita,
+        unita: dati.unita,
+        scalabile: true,
+        opzionale: opzioni?.opzionale ?? false,
+        sostituti: [],
+      };
+    }),
+  };
+}
+
+const ESTATE = [6, 7, 8, 9];
+
+export const RICETTE_SISTEMA: RicettaBase[] = [
+  r('spaghetti_aglio_olio', 'Spaghetti aglio, olio e peperoncino', 'primo', 15, 1, 'pasta_condita',
+    [['spaghetti', 320], ['aglio', 10], ['olio_evo', 50], ['peperoncino', 2], ['prezzemolo', 10, { opzionale: true }], ['sale', 10]],
+    ['Cuoci gli spaghetti in abbondante acqua salata.', "Nel frattempo scalda l'olio in padella con l'aglio a fettine e il peperoncino, senza far bruciare l'aglio.", 'Scola la pasta al dente tenendo un mestolo di acqua di cottura.', "Salta gli spaghetti in padella con un po' di acqua di cottura e il prezzemolo tritato."]),
+  r('carbonara', 'Spaghetti alla carbonara', 'primo', 25, 2, 'piatti_uova',
+    [['spaghetti', 320], ['guanciale', 150], ['uova', 4, { testo: 'Tuorli' }], ['pecorino', 60], ['pepe', 2], ['sale', 10]],
+    ['Taglia il guanciale a listarelle e rosolalo in padella senza olio finché è croccante.', 'Sbatti i tuorli con il pecorino grattugiato e abbondante pepe.', "Cuoci gli spaghetti in acqua salata, scolali al dente e versali nella padella con il guanciale, a fuoco spento.", "Aggiungi la crema di uova e un po' di acqua di cottura, mescolando velocemente finché diventa cremosa."]),
+  r('pasta_pomodoro', 'Pasta al pomodoro e basilico', 'primo', 25, 1, 'pasta_condita',
+    [['pasta', 320], ['passata', 500], ['aglio', 5], ['olio_evo', 30], ['basilico', 10], ['parmigiano', 30, { opzionale: true }], ['sale', 10]],
+    ["Scalda l'olio con lo spicchio d'aglio, aggiungi la passata e un pizzico di sale.", "Cuoci il sugo 15 minuti a fuoco basso, poi togli l'aglio e aggiungi il basilico.", 'Cuoci la pasta, scolala al dente e condiscila con il sugo.', 'Servi con parmigiano a piacere.']),
+  r('penne_arrabbiata', "Penne all'arrabbiata", 'primo', 25, 1, 'pasta_condita',
+    [['penne', 320], ['pelati', 400], ['aglio', 10], ['peperoncino', 3], ['olio_evo', 40], ['prezzemolo', 10, { opzionale: true }], ['sale', 10]],
+    ["Soffriggi l'aglio e il peperoncino nell'olio.", 'Aggiungi i pelati schiacciati con una forchetta e cuoci 15 minuti.', 'Cuoci le penne al dente e saltale nel sugo.', 'Completa con prezzemolo tritato.']),
+  r('pasta_fagioli', 'Pasta e fagioli', 'piatto_unico', 40, 1, 'legumi_zuppe',
+    [['pasta', 200], ['fagioli', 480], ['passata', 200], ['cipolla', 80], ['carota', 80], ['sedano', 50], ['olio_evo', 30], ['rosmarino', 2, { opzionale: true }], ['sale', 8]],
+    ['Trita cipolla, carota e sedano e falli appassire nell’olio.', 'Aggiungi i fagioli scolati, la passata, il rosmarino e un litro di acqua; cuoci 15 minuti.', 'Frulla un terzo dei fagioli per rendere la minestra cremosa.', 'Aggiungi la pasta e cuocila direttamente nella minestra, aggiungendo acqua se serve.']),
+  r('pasta_ceci', 'Pasta e ceci', 'piatto_unico', 35, 1, 'legumi_zuppe',
+    [['pasta', 200], ['ceci', 480], ['passata', 100], ['aglio', 5], ['rosmarino', 2], ['olio_evo', 30], ['sale', 8]],
+    ["Rosola l'aglio e il rosmarino nell'olio.", 'Aggiungi i ceci scolati, la passata e un litro di acqua; cuoci 10 minuti.', 'Frulla metà dei ceci e rimettili in pentola.', 'Cuoci la pasta nella minestra e servi con un filo d’olio a crudo.']),
+  r('pasta_tonno', 'Pasta al tonno', 'primo', 20, 1, 'pasta_condita',
+    [['pasta', 320], ['tonno_scatola', 160], ['passata', 300], ['aglio', 5], ['olio_evo', 20], ['capperi', 20, { opzionale: true }], ['prezzemolo', 10, { opzionale: true }], ['sale', 10]],
+    ["Soffriggi l'aglio nell'olio, aggiungi la passata e cuoci 10 minuti.", 'Unisci il tonno sgocciolato e i capperi e cuoci altri 3 minuti.', 'Cuoci la pasta al dente, condiscila con il sugo e il prezzemolo.']),
+  r('pasta_zucchine', 'Pasta con le zucchine', 'primo', 25, 1, 'pasta_condita',
+    [['pasta', 320], ['zucchina', 500], ['cipolla', 50], ['olio_evo', 40], ['parmigiano', 40], ['basilico', 5, { opzionale: true }], ['sale', 10]],
+    ['Affetta sottile la cipolla e le zucchine a rondelle.', "Falle rosolare nell'olio a fuoco medio per 10 minuti, finché sono dorate.", "Cuoci la pasta, scolala e saltala con le zucchine, un po' di acqua di cottura e il parmigiano."],
+    { mesi: [5, 6, 7, 8, 9] }),
+  r('tagliatelle_ragu', 'Tagliatelle al ragù', 'primo', 150, 2, 'ragu',
+    [['pasta_uovo', 400], ['carne_macinata', 400], ['passata', 500], ['cipolla', 80], ['carota', 80], ['sedano', 50], ['vino_rosso', 100, { opzionale: true }], ['olio_evo', 30], ['sale', 10]],
+    ['Trita cipolla, carota e sedano e falli soffriggere nell’olio.', 'Aggiungi la carne e rosolala bene; sfuma con il vino.', 'Unisci la passata, sala e cuoci a fuoco bassissimo per almeno due ore.', 'Cuoci le tagliatelle e condiscile con il ragù.']),
+  r('lasagne', 'Lasagne alla bolognese', 'piatto_unico', 120, 3, 'pasta_condita',
+    [['lasagne', 250], ['carne_macinata', 400], ['passata', 700], ['latte', 500], ['burro', 50], ['farina', 50], ['parmigiano', 80], ['cipolla', 50], ['carota', 50], ['sedano', 30], ['olio_evo', 20], ['sale', 10]],
+    ['Prepara un ragù: soffritto di cipolla, carota e sedano, carne rosolata e passata, cotto un’ora.', 'Per la besciamella sciogli il burro, aggiungi la farina e poi il latte caldo, mescolando finché si addensa.', 'In una teglia alterna sfoglie, ragù, besciamella e parmigiano, per almeno quattro strati.', 'Cuoci in forno a 180 °C per 30–35 minuti.']),
+  r('risotto_parmigiano', 'Risotto alla parmigiana', 'primo', 30, 2, 'riso_cotto',
+    [['riso_risotti', 320], ['dado', 10, { testo: 'Brodo vegetale' }], ['cipolla', 50], ['burro', 40], ['parmigiano', 60], ['vino_bianco', 50, { opzionale: true }], ['sale', 4]],
+    ['Prepara un litro e mezzo di brodo caldo.', 'Fai appassire la cipolla tritata con metà del burro, tosta il riso e sfuma con il vino.', 'Aggiungi il brodo un mestolo alla volta, mescolando, per circa 17 minuti.', 'A fuoco spento manteca con il burro rimasto e il parmigiano.']),
+  r('risotto_funghi', 'Risotto ai funghi', 'primo', 35, 2, 'riso_cotto',
+    [['riso_risotti', 320], ['funghi', 400], ['dado', 10, { testo: 'Brodo vegetale' }], ['cipolla', 50], ['burro', 30], ['parmigiano', 50], ['prezzemolo', 10], ['olio_evo', 20], ['sale', 4]],
+    ["Trifola i funghi in padella con olio e prezzemolo per 10 minuti.", 'Tosta il riso con la cipolla tritata e il burro, poi aggiungi il brodo caldo poco alla volta.', 'A metà cottura unisci i funghi.', 'Manteca con parmigiano a fuoco spento.'],
+    { mesi: [9, 10, 11] }),
+  r('risotto_zucca', 'Risotto alla zucca', 'primo', 40, 2, 'riso_cotto',
+    [['riso_risotti', 320], ['zucca', 500], ['dado', 10, { testo: 'Brodo vegetale' }], ['cipolla', 50], ['burro', 30], ['parmigiano', 50], ['sale', 4]],
+    ['Taglia la zucca a cubetti e cuocila con la cipolla e un mestolo di brodo finché si sfalda.', 'Aggiungi il riso, tostalo e continua con il brodo caldo poco alla volta.', 'Manteca con burro e parmigiano.'],
+    { mesi: [9, 10, 11, 12, 1] }),
+  r('gnocchi_pomodoro', 'Gnocchi al pomodoro', 'primo', 25, 1, 'pasta_condita',
+    [['gnocchi', 800], ['passata', 400], ['basilico', 10], ['olio_evo', 20], ['mozzarella', 125, { opzionale: true }], ['sale', 5]],
+    ['Cuoci la passata con olio e sale per 15 minuti, poi aggiungi il basilico.', 'Cuoci gli gnocchi in acqua salata e scolali appena salgono a galla.', 'Condiscili con il sugo e, se ti piace, con mozzarella a cubetti.']),
+  r('minestrone', 'Minestrone di verdure', 'piatto_unico', 60, 1, 'legumi_zuppe',
+    [['patata', 300], ['carota', 150], ['zucchina', 200], ['sedano', 80], ['cipolla', 80], ['fagioli', 240], ['pomodoro', 200], ['olio_evo', 30], ['pasta', 100, { opzionale: true }], ['sale', 8]],
+    ['Taglia tutte le verdure a cubetti.', 'Falle insaporire nell’olio con la cipolla, poi copri con un litro e mezzo di acqua.', 'Cuoci 40 minuti, aggiungi i fagioli e, se vuoi, la pasta corta.', 'Servi con un filo d’olio a crudo.']),
+  r('zuppa_lenticchie', 'Zuppa di lenticchie', 'piatto_unico', 50, 1, 'legumi_zuppe',
+    [['lenticchie', 300], ['cipolla', 80], ['carota', 80], ['sedano', 50], ['passata', 200], ['aglio', 5], ['olio_evo', 30], ['sale', 8]],
+    ['Sciacqua le lenticchie.', 'Prepara un soffritto di cipolla, carota, sedano e aglio.', 'Aggiungi lenticchie, passata e un litro e mezzo di acqua; cuoci 40 minuti a fuoco basso.', 'Regola di sale e servi calda, anche con pane tostato.']),
+  r('scaloppine_limone', 'Scaloppine di pollo al limone', 'secondo', 20, 1, 'carne_cotta',
+    [['petto_pollo', 600], ['limone', 240], ['farina', 40], ['burro', 40], ['prezzemolo', 10, { opzionale: true }], ['sale', 4]],
+    ['Batti le fettine di pollo e infarinale.', 'Rosolale nel burro due minuti per lato.', 'Aggiungi il succo dei limoni e cuoci finché si forma una salsina.', 'Completa con prezzemolo tritato.']),
+  r('cotolette_pollo', 'Cotolette di pollo', 'secondo', 30, 1, 'carne_cotta',
+    [['petto_pollo', 600], ['uova', 2], ['pane_grattugiato', 150], ['olio_evo', 150, { testo: 'Olio per friggere' }], ['sale', 4]],
+    ['Passa le fettine di pollo nell’uovo sbattuto e poi nel pangrattato.', 'Friggile in olio caldo 3–4 minuti per lato, oppure cuocile in forno a 200 °C per 20 minuti.', 'Asciugale su carta da cucina e sala.']),
+  r('polpette_sugo', 'Polpette al sugo', 'secondo', 50, 2, 'carne_cotta',
+    [['carne_macinata', 500], ['uova', 1], ['pane_grattugiato', 60], ['parmigiano', 50], ['passata', 700], ['aglio', 5], ['olio_evo', 30], ['prezzemolo', 10, { opzionale: true }], ['sale', 6]],
+    ['Impasta la carne con uovo, pangrattato, parmigiano, prezzemolo e sale.', 'Forma delle polpette grandi come una noce.', "Prepara il sugo con olio, aglio e passata e cuocici le polpette 25 minuti a fuoco basso."]),
+  r('pizzaiola', 'Fettine alla pizzaiola', 'secondo', 25, 1, 'carne_cotta',
+    [['manzo', 600], ['pelati', 400], ['aglio', 5], ['origano', 2], ['olio_evo', 30], ['sale', 4]],
+    ["Scalda l'olio con l'aglio e aggiungi i pelati schiacciati.", 'Dopo 10 minuti adagia le fettine nel sugo e cuoci 5 minuti per lato.', "Completa con l'origano."]),
+  r('salsiccia_patate', 'Salsiccia e patate al forno', 'piatto_unico', 50, 1, 'carne_cotta',
+    [['salsiccia', 600], ['patata', 800], ['rosmarino', 3], ['aglio', 10], ['olio_evo', 40], ['sale', 6]],
+    ['Taglia le patate a spicchi e condiscile con olio, sale, aglio e rosmarino.', 'Aggiungi le salsicce tagliate a pezzi.', 'Cuoci in forno a 200 °C per 40 minuti, girando a metà cottura.']),
+  r('frittata_zucchine', 'Frittata di zucchine', 'secondo', 25, 1, 'piatti_uova',
+    [['uova', 6], ['zucchina', 300], ['parmigiano', 40], ['cipolla', 50, { opzionale: true }], ['olio_evo', 20], ['sale', 4]],
+    ["Rosola le zucchine a rondelle con la cipolla nell'olio per 8 minuti.", 'Sbatti le uova con il parmigiano e il sale e versale sulle zucchine.', 'Cuoci coperto a fuoco basso, poi gira la frittata e cuocila altri 3 minuti.'],
+    { mesi: [5, 6, 7, 8, 9] }),
+  r('uova_purgatorio', 'Uova al pomodoro', 'secondo', 20, 1, 'piatti_uova',
+    [['uova', 8], ['passata', 500], ['aglio', 5], ['olio_evo', 30], ['basilico', 5, { opzionale: true }], ['sale', 4]],
+    ["Cuoci la passata con olio, aglio e sale per 10 minuti.", 'Fai delle conche nel sugo e rompici dentro le uova.', 'Cuoci coperto 6–8 minuti, finché l’albume è rappreso, e completa con il basilico.']),
+  r('salmone_forno', 'Salmone al forno con limone', 'secondo', 25, 1, 'pesce_cotto',
+    [['salmone', 600], ['limone', 120], ['olio_evo', 30], ['rosmarino', 2, { opzionale: true }], ['sale', 4]],
+    ['Disponi i tranci di salmone in una teglia con olio, sale, rosmarino e fettine di limone.', 'Cuoci in forno a 200 °C per 15–18 minuti.']),
+  r('merluzzo_umido', 'Merluzzo in umido', 'secondo', 30, 1, 'pesce_cotto',
+    [['merluzzo', 600], ['pomodorini', 300], ['olive', 50], ['capperi', 20], ['aglio', 5], ['olio_evo', 30], ['prezzemolo', 10, { opzionale: true }], ['sale', 4]],
+    ["Fai soffriggere l'aglio nell'olio, aggiungi i pomodorini tagliati, le olive e i capperi.", 'Dopo 5 minuti adagia i filetti di merluzzo e cuoci coperto 10 minuti.', 'Completa con il prezzemolo.']),
+  r('caprese', 'Insalata caprese', 'antipasto', 10, 1, undefined,
+    [['pomodoro', 500], ['mozzarella', 375], ['basilico', 10], ['olio_evo', 30], ['origano', 1, { opzionale: true }], ['sale', 3]],
+    ['Affetta pomodori e mozzarella.', "Alternali nel piatto con le foglie di basilico e condisci con olio, sale e origano."],
+    { mesi: ESTATE }),
+  r('bruschette', 'Bruschette al pomodoro', 'antipasto', 15, 1, undefined,
+    [['pane', 300], ['pomodoro', 400], ['aglio', 5], ['basilico', 10], ['olio_evo', 40], ['sale', 3]],
+    ['Taglia i pomodori a cubetti e condiscili con olio, sale e basilico.', 'Tosta le fette di pane e strofinale con l’aglio.', 'Distribuisci i pomodori sul pane appena prima di servire.'],
+    { mesi: ESTATE }),
+  r('patate_forno', 'Patate al forno', 'contorno', 50, 1, 'verdure_cotte',
+    [['patata', 1000], ['rosmarino', 3], ['aglio', 10], ['olio_evo', 50], ['sale', 6]],
+    ['Taglia le patate a spicchi e condiscile con olio, sale, aglio e rosmarino.', 'Cuoci in forno a 200 °C per 40–45 minuti, girandole a metà.']),
+  r('zucchine_trifolate', 'Zucchine trifolate', 'contorno', 20, 1, 'verdure_cotte',
+    [['zucchina', 800], ['aglio', 5], ['olio_evo', 30], ['prezzemolo', 10], ['sale', 4]],
+    ["Taglia le zucchine a rondelle e cuocile in padella con olio e aglio per 12 minuti.", 'Sala e completa con il prezzemolo.'],
+    { mesi: [5, 6, 7, 8, 9] }),
+  r('peperonata', 'Peperonata', 'contorno', 40, 1, 'verdure_cotte',
+    [['peperone', 800], ['cipolla', 200], ['pomodoro', 300], ['olio_evo', 40], ['sale', 4]],
+    ['Taglia peperoni e cipolle a falde.', "Cuocili in padella con l'olio per 10 minuti, poi aggiungi i pomodori a pezzi.", 'Continua a fuoco basso, coperto, per 25 minuti.'],
+    { mesi: ESTATE }),
+  r('spinaci_burro', 'Spinaci al burro e parmigiano', 'contorno', 15, 1, 'verdure_cotte',
+    [['spinaci', 800], ['burro', 30], ['parmigiano', 30, { opzionale: true }], ['sale', 3]],
+    ['Lava gli spinaci e cuocili in padella coperta solo con l’acqua rimasta sulle foglie, per 5 minuti.', 'Strizzali, poi ripassali nel burro e completa con il parmigiano.']),
+  r('parmigiana', 'Parmigiana di melanzane', 'piatto_unico', 90, 3, 'verdure_cotte',
+    [['melanzana', 1000], ['passata', 700], ['mozzarella', 250], ['parmigiano', 80], ['basilico', 10], ['olio_evo', 100], ['sale', 6]],
+    ['Affetta le melanzane, salale e lasciale spurgare 30 minuti.', 'Grigliale o friggile e prepara un sugo semplice con la passata.', 'In una teglia alterna melanzane, sugo, mozzarella, parmigiano e basilico.', 'Cuoci in forno a 180 °C per 30 minuti e lascia riposare prima di servire.'],
+    { mesi: ESTATE }),
+  r('pizza_margherita', 'Pizza margherita fatta in casa', 'piatto_unico', 180, 2, 'pizza_torte_salate',
+    [['farina', 500], ['acqua', 300], ['lievito_birra', 10], ['passata', 300], ['mozzarella', 250], ['olio_evo', 30], ['basilico', 5, { opzionale: true }], ['sale', 10]],
+    ["Sciogli il lievito nell'acqua, impasta con la farina, l'olio e il sale per 10 minuti.", "Lascia lievitare l'impasto coperto per almeno due ore.", 'Stendilo in teglia, condisci con la passata e cuoci a 250 °C per 10 minuti.', 'Aggiungi la mozzarella e cuoci altri 5–7 minuti; completa con il basilico.']),
+  r('tiramisu', 'Tiramisù', 'dolce', 30, 2, 'dolci_crema',
+    [['savoiardi', 300], ['mascarpone', 500], ['uova', 4], ['zucchero', 100], ['caffe', 20, { testo: 'Caffè (per circa 300 ml)' }], ['cacao_amaro', 15]],
+    ['Prepara il caffè e lascialo raffreddare.', 'Monta i tuorli con lo zucchero, unisci il mascarpone e poi gli albumi montati a neve.', 'Inzuppa velocemente i savoiardi nel caffè e alternali alla crema in una pirofila.', 'Spolvera con il cacao e lascia in frigo almeno 4 ore.'],
+    { porzioni: 6 }),
+  r('torta_mele', 'Torta di mele', 'dolce', 70, 2, 'dolci_forno',
+    [['farina', 250], ['zucchero', 150], ['uova', 3], ['burro', 100], ['latte', 100], ['mela', 540], ['lievito_dolci', 16], ['limone', 60, { opzionale: true, testo: 'Scorza di limone' }]],
+    ['Monta le uova con lo zucchero, aggiungi il burro fuso e il latte.', 'Unisci la farina setacciata con il lievito e la scorza di limone.', 'Versa in una tortiera, copri con le mele a fettine.', 'Cuoci in forno a 180 °C per 45 minuti.'],
+    { porzioni: 8 }),
+];
+
+export const RICETTE_SISTEMA_PER_ID: ReadonlyMap<string, RicettaBase> = new Map(RICETTE_SISTEMA.map((x) => [x.id, x]));
