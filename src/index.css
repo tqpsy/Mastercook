@@ -1,0 +1,243 @@
+:root {
+  --sfondo: #f7f8f3;
+  --superficie: #ffffff;
+  --testo: #1f251c;
+  --tenue: #5b6555;
+  --linea: #dfe3d6;
+  --accento: #4d6b2a;
+  --accento-tenue: #e9efdf;
+  --avviso: #9a5b0f;
+  --avviso-tenue: #fbf1e1;
+  --altezza-barra: 64px;
+  color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sfondo: #141812;
+    --superficie: #1b2018;
+    --testo: #e4e8dc;
+    --tenue: #a2ab98;
+    --linea: #2f362a;
+    --accento: #a9c97c;
+    --accento-tenue: #25301c;
+    --avviso: #e7b26a;
+    --avviso-tenue: #2f2617;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--sfondo);
+  color: var(--testo);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.intestazione {
+  position: sticky;
+  top: 0;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  background: var(--sfondo);
+  border-bottom: 1px solid var(--linea);
+  z-index: 1;
+}
+
+.marchio {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--accento);
+}
+
+.contenuto {
+  flex: 1;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 16px 16px calc(var(--altezza-barra) + env(safe-area-inset-bottom) + 24px);
+}
+
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pagina h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.riquadro {
+  margin: 0 0 16px;
+  padding: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.riquadro p {
+  margin: 0;
+}
+
+.riquadro.avviso {
+  background: var(--avviso-tenue);
+  border-color: transparent;
+  color: var(--avviso);
+}
+
+.etichetta-fase {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--accento-tenue);
+  color: var(--accento);
+}
+
+.sottoschede {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--accento-tenue);
+  border-radius: 10px;
+}
+
+.sottoschede button {
+  flex: 1;
+  border: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sottoschede button.attiva {
+  background: var(--superficie);
+  font-weight: 600;
+}
+
+.elenco-azioni {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.elenco-azioni button {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  background: var(--sfondo);
+}
+
+.elenco-azioni button span {
+  color: var(--tenue);
+  font-size: 0.9rem;
+}
+
+.barra-schede {
+  position: fixed;
+  inset: auto 0 0;
+  display: flex;
+  height: calc(var(--altezza-barra) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--superficie);
+  border-top: 1px solid var(--linea);
+}
+
+.scheda {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--tenue);
+  font-size: 0.75rem;
+}
+
+.scheda.attiva {
+  color: var(--accento);
+  font-weight: 600;
+}
+
+.scheda-icona {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.scheda-principale .scheda-icona {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accento);
+  color: var(--superficie);
+  font-size: 1.6rem;
+}
+
+.avviso-pwa {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--altezza-barra) + env(safe-area-inset-bottom) + 12px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--testo);
+  color: var(--sfondo);
+  border-radius: 12px;
+}
+
+.avviso-pwa span {
+  flex: 1;
+}
+
+.avviso-pwa button {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: var(--accento);
+  color: var(--superficie);
+  cursor: pointer;
+}
+
+.avviso-pwa button.secondario {
+  background: transparent;
+  color: inherit;
+}
