@@ -37,3 +37,16 @@ describe('cestino', () => {
     expect(collezione(ctx.dati, 'inventario').has(id!)).toBe(false);
   });
 });
+
+describe('date di nascita dei vecchi profili', () => {
+  it('restano solo con l’anno', async () => {
+    const { salvaMembro, riduciDateDiNascita } = await import('./azioni');
+    const ctx = nuovoCtx();
+    const id = salvaMembro(ctx, { nome: 'Anna', allergie: [], intolleranze: [], escludi_tracce: false, restrizioni: [], preferenze: { graditi: [], sgraditi: [] }, fattore_porzione: 1, attivo: true, data_nascita: '2015-06-12' });
+    expect(riduciDateDiNascita(ctx)).toBe(1);
+    const m = collezione(ctx.dati, 'membri').get(id)!;
+    expect(m.get('anno_nascita')).toBe(2015);
+    expect(m.has('data_nascita')).toBe(false);
+    expect(riduciDateDiNascita(ctx)).toBe(0);
+  });
+});

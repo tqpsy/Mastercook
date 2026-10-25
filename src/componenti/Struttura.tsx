@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { svuotaCestinoScaduto } from '../nucleo/azioni';
+import { riduciDateDiNascita, svuotaCestinoScaduto } from '../nucleo/azioni';
 import { useNucleo } from '../nucleo/contesto';
 import { preparaOcrOffline } from '../piattaforma/ocr';
 import { AggiornamentoPwa } from './AggiornamentoPwa';
@@ -20,9 +20,10 @@ export function Struttura() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-  // Una volta per apertura: via dal cestino ciò che ha più di 30 giorni, e motore degli scontrini pronto anche offline.
+  // Una volta per apertura: via dal cestino ciò che ha più di 30 giorni, solo l'anno di nascita nei profili, e motore degli scontrini pronto anche offline.
   useEffect(() => {
     svuotaCestinoScaduto(ctx);
+    riduciDateDiNascita(ctx);
     preparaOcrOffline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nucleo.id]);

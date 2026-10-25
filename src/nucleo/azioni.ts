@@ -55,7 +55,7 @@ function pesoGrammi(quantita: number, unita: UnitaCanonica, ingredienteId?: stri
 export type DatiMembro = Pick<
   Membro,
   'nome' | 'allergie' | 'intolleranze' | 'escludi_tracce' | 'restrizioni' | 'preferenze' | 'fattore_porzione' | 'attivo'
-> & Partial<Pick<Membro, 'data_nascita' | 'sesso' | 'condizione' | 'porzione_automatica' | 'utente_id'>>;
+> & Partial<Pick<Membro, 'anno_nascita' | 'data_nascita' | 'sesso' | 'condizione' | 'porzione_automatica' | 'utente_id'>>;
 
 export function salvaMembro(ctx: Ctx, dati: DatiMembro, id?: string): string {
   const membri = collezione(ctx.dati, 'membri');
@@ -496,4 +496,23 @@ export function svuotaCestinoScaduto(ctx: Pick<Ctx, 'dati'>, adesso = new Date()
     }
   });
   return tolti;
+}
+
+/**
+ * Minimizzazione dei dati: i vecchi profili avevano la data di nascita completa, ma basta l'anno.
+ * Si converte una volta, su qualsiasi telefono della famiglia apra l'app.
+ */
+export function riduciDateDiNascita(ctx: Pick<Ctx, 'dati'>): number {
+  let convertiti = 0;
+  ctx.dati.transact(() => {
+    for (const m of collezione(ctx.dati, 'membri').values()) {
+      const data = m.get('data_nascita');
+      if (typeof data !== 'string') continue;
+      const anno = Number(data.slice(0, 4));
+      if (!m.get('anno_nascita') && Number.isFinite(anno)) m.set('anno_nascita', anno);
+      m.delete('data_nascita');
+      convertiti++;
+    }
+  });
+  return convertiti;
 }

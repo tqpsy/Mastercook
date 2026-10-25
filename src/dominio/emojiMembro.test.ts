@@ -11,9 +11,9 @@ describe('emojiMembro', () => {
     expect(emojiMembro({ sesso: 'femmina', data_nascita: '2016-11-30', fattore_porzione: 1 }, oggi)).toBe('👧');
   });
 
-  it('a 14 anni compiuti il profilo è adulto', () => {
-    expect(emojiMembro({ sesso: 'femmina', data_nascita: '2012-10-25', fattore_porzione: 1 }, oggi)).toBe('👩');
-    expect(emojiMembro({ sesso: 'femmina', data_nascita: '2012-10-26', fattore_porzione: 1 }, oggi)).toBe('👧');
+  it('dall’anno in cui compie 14 anni il profilo è adulto', () => {
+    expect(emojiMembro({ sesso: 'femmina', anno_nascita: 2012, fattore_porzione: 1 }, oggi)).toBe('👩');
+    expect(emojiMembro({ sesso: 'femmina', anno_nascita: 2013, fattore_porzione: 1 }, oggi)).toBe('👧');
   });
 
   it('senza data di nascita usa la porzione, senza sesso un’emoji neutra', () => {

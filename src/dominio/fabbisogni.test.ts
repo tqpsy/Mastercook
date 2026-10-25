@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { calcolaFabbisogno, etaInAnni, fattoreDaFabbisogno, porzioneEffettiva, puoAvereCondizione } from './fabbisogni';
+import { annoNascita, calcolaFabbisogno, etaDaAnno, fattoreDaFabbisogno, porzioneEffettiva, puoAvereCondizione } from './fabbisogni';
 
 describe('fabbisogni LARN', () => {
-  it('calcola l’età in anni compiuti', () => {
-    expect(etaInAnni('1985-10-25', '2026-10-24')).toBe(40);
-    expect(etaInAnni('1985-10-24', '2026-10-24')).toBe(41);
+  it('calcola l’età dall’anno di nascita', () => {
+    expect(etaDaAnno(1985, '2026-10-24')).toBe(41);
+    expect(annoNascita({ data_nascita: '1985-10-24' })).toBe(1985);
+    expect(annoNascita({ anno_nascita: 1990, data_nascita: '1985-10-24' })).toBe(1990);
   });
 
   it('distingue maschi e femmine e usa la media se il sesso manca', () => {
@@ -34,5 +35,14 @@ describe('fabbisogni LARN', () => {
     expect(porzioneEffettiva({ data_nascita: '2021-01-01', fattore_porzione: 1 }, oggi)).toBeLessThan(1);
     expect(porzioneEffettiva({ data_nascita: '2021-01-01', fattore_porzione: 1, porzione_automatica: false }, oggi)).toBe(1);
     expect(porzioneEffettiva({ fattore_porzione: 1.3 }, oggi)).toBe(1.3);
+  });
+});
+
+describe('anno di nascita', () => {
+  it('basta l’anno per la porzione e vale ancora la data dei vecchi profili', () => {
+    const oggi = '2026-10-25';
+    expect(porzioneEffettiva({ anno_nascita: 2021, fattore_porzione: 1 }, oggi)).toBe(porzioneEffettiva({ data_nascita: '2021-01-01', fattore_porzione: 1 }, oggi));
+    expect(porzioneEffettiva({ anno_nascita: 2021, fattore_porzione: 1 }, oggi)).toBeLessThan(1);
+    expect(porzioneEffettiva({ anno_nascita: 2030, fattore_porzione: 0.8 }, oggi)).toBe(0.8);
   });
 });
