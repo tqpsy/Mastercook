@@ -12,7 +12,7 @@ const ID_CLIENT_GOOGLE = '482205981080-7p0d3h797nbm2gtb9h3iediib5rcihs3.apps.goo
  * Picker API: è fatta per stare nel client. Serve solo se Google chiede a un familiare
  * invitato di confermare i file condivisi.
  */
-const CHIAVE_API_GOOGLE = '';
+const CHIAVE_API_GOOGLE = 'AIzaSyDZ4P2SQ9bpPLdb2ojAI9VDKUQdQjYQgFg';
 
 export const config = {
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || ID_CLIENT_GOOGLE,
