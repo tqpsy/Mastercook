@@ -4,7 +4,7 @@
  * Da comprare = max(0, Σ origini − disponibile), in confezioni se l'ingrediente ha un formato tipico.
  */
 import { ingrediente, type Ingrediente } from '../rif/ingredienti';
-import type { Reparto } from '../rif/reparti';
+import { REPARTI, type Reparto } from '../rif/reparti';
 import type { Disponibilita } from './disponibilita';
 import type { ArticoloLista } from './tipi';
 
@@ -52,4 +52,28 @@ export function vistaLista(righe: readonly ArticoloLista[], disponibilita: Dispo
   vista.daComprare.sort(ordine);
   vista.giaInCasa.sort(ordine);
   return vista;
+}
+
+export interface RepartoSpesa {
+  id: Reparto;
+  nome: string;
+  righe: RigaVista[];
+}
+
+export interface Spesa {
+  /** Reparti con qualcosa ancora da prendere, nell'ordine del supermercato. */
+  reparti: RepartoSpesa[];
+  /** Già nel carrello, l'ultimo preso per primo. */
+  carrello: RigaVista[];
+  totale: number;
+  presi: number;
+}
+
+/** La lista per la modalità supermercato: solo ciò che manca davvero, per reparto, e il carrello. */
+export function vistaSpesa(vista: VistaLista): Spesa {
+  const reparti = REPARTI.map((r) => ({ id: r.id, nome: r.nome, righe: vista.daComprare.filter((v) => v.reparto === r.id) })).filter(
+    (r) => r.righe.length,
+  );
+  const carrello = [...vista.presi].sort((a, b) => b.riga.modificato_il.localeCompare(a.riga.modificato_il));
+  return { reparti, carrello, totale: vista.daComprare.length + carrello.length, presi: carrello.length };
 }
