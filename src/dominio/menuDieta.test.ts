@@ -37,7 +37,9 @@ describe('proponiPasto', () => {
   it('pesce e verdura: niente carne, e la verdura come contorno', () => {
     const p = proponiPasto(pasto('merluzzo 150 g, spinaci 200 g, pane 50 g'), RICETTE_SISTEMA, contesto(), { usate: new Map() });
     const ricette = p.portate.filter((x) => x.ricetta).map((x) => x.ricetta!.id);
-    expect(ricette[0]).toBe('sys:merluzzo_umido');
+    const pesce = RICETTE_SISTEMA.find((r) => r.id === ricette[0])!;
+    expect(pesce.portata).toBe('secondo');
+    expect(pesce.ingredienti.some((r) => r.ingrediente_id === 'ing:merluzzo')).toBe(true);
     expect(ricette).toContain('sys:spinaci_burro');
     expect(p.portate.some((x) => x.titolo === 'Pane 50 g')).toBe(true);
     expect(p.portate[0]!.porzioni).toBe(1);

@@ -11,6 +11,7 @@
 import { ingrediente } from '../rif/ingredienti';
 import { GRUPPI_PRINCIPALI, NOME_GRUPPO, descriviVoce, gruppoIngrediente, gruppiVoce, type GruppoAlimentare } from './dieta';
 import type { TipoPasto } from './id';
+import { normalizza } from './ricerca';
 import { valutaRicetta, type ContestoSuggerimenti } from './suggerimenti';
 import type { PastoDieta, Portata, Ricetta, VoceDieta } from './tipi';
 
@@ -125,6 +126,12 @@ function punteggio(
     p -= PROTEINE.has(g) ? 2 : g === 'cereali' || g === 'patate' ? 1.2 : 0.3;
   }
   for (const v of voci) if (v.ingrediente_id && profilo.ingredienti.has(v.ingrediente_id)) p += 0.6;
+  // La dieta nomina il piatto ("pasta e ceci"): vale più di una ricetta che ha solo gli stessi gruppi.
+  const titolo = normalizza(ricetta.titolo);
+  for (const v of voci) {
+    const piatto = normalizza(v.testo.replace(/\d.*$/, ''));
+    if (piatto.includes(' ') && titolo.includes(piatto)) p += 0.6;
+  }
   const valutata = valutaRicetta(ricetta, ctx);
   if (valutata.sezione === 'escluse') return null;
   p += 0.3 * valutata.copertura;

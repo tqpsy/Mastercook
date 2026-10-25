@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CUCINE, type Cucina } from '../../rif/ricetteBase';
 import { emojiMembro } from '../../dominio/emojiMembro';
 import { Link } from 'react-router-dom';
 import { FoglioOspiti } from '../../componenti/Ospiti';
@@ -84,13 +85,16 @@ export function Ricette() {
   const ricette = useRicette();
   const [testo, setTesto] = useState('');
   const [portata, setPortata] = useState<Portata | 'tutte'>('tutte');
+  const [cucina, setCucina] = useState<Cucina | 'tutte'>('tutte');
   const [mostraAltre, setMostraAltre] = useState(false);
   const [mostraEscluse, setMostraEscluse] = useState(false);
 
   const filtrate = useMemo(() => {
     const q = normalizza(testo);
-    return ricette.filter((r) => (portata === 'tutte' || r.portata === portata) && (!q || normalizza(r.titolo).includes(q)));
-  }, [ricette, testo, portata]);
+    return ricette.filter(
+      (r) => (portata === 'tutte' || r.portata === portata) && (cucina === 'tutte' || r.cucina === cucina) && (!q || normalizza(r.titolo).includes(q)),
+    );
+  }, [ricette, testo, portata, cucina]);
   const sezioni = useMemo(() => suggerisci(filtrate, ctx), [filtrate, ctx]);
   const inventarioVuoto = ctx.disponibilita.quantita.size === 0;
 
@@ -121,6 +125,16 @@ export function Ricette() {
         {PORTATE.map((p) => (
           <Chip key={p} attivo={portata === p} onClick={() => setPortata(p)}>
             {p === 'tutte' ? 'Tutte' : NOME_PORTATA[p]}
+          </Chip>
+        ))}
+      </div>
+      <div className="chips scorrevoli" aria-label="Cucina">
+        <Chip attivo={cucina === 'tutte'} onClick={() => setCucina('tutte')}>
+          Tutte le cucine
+        </Chip>
+        {CUCINE.map((c) => (
+          <Chip key={c.id} attivo={cucina === c.id} onClick={() => setCucina(c.id)}>
+            {c.bandiera} {c.nome}
           </Chip>
         ))}
       </div>

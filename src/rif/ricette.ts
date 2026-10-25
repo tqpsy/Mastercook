@@ -1,71 +1,15 @@
 /**
- * Ricette di sistema, versione 1. Quantità per le porzioni indicate, nell'unità dell'ingrediente
- * (g, ml o pezzi). Gli allergeni effettivi si calcolano sempre come dichiarati ∪ ingredienti.
+ * Ricette di sistema: classici italiani di casa e una scelta di cucine estere, scritte per Masterfood.
+ * Gli allergeni effettivi si calcolano sempre come dichiarati ∪ ingredienti.
  */
-import type { Allergene } from '../dominio/allergeni';
-import type { Portata, RigaIngrediente } from '../dominio/tipi';
-import { INGREDIENTI_PER_ID } from './ingredienti';
+import { ESTATE, r, type RicettaBase } from './ricetteBase';
+import { ESTERE } from './ricetteEstere';
+import { ITALIANE } from './ricetteItaliane';
 
-export interface RicettaBase {
-  id: string;
-  origine: 'sistema' | 'personale';
-  titolo: string;
-  portata: Portata;
-  porzioni_base: number;
-  minuti: number;
-  difficolta: 1 | 2 | 3;
-  ingredienti: RigaIngrediente[];
-  passaggi: string[];
-  allergeni_dichiarati: Allergene[];
-  categoria_conservazione?: string;
-  mesi_stagione?: number[];
-  derivata_da?: string;
-}
+export type { Cucina, RicettaBase } from './ricetteBase';
 
-type Riga = [slug: string, quantita: number, opzioni?: { opzionale?: boolean; testo?: string }];
 
-function r(
-  slug: string,
-  titolo: string,
-  portata: Portata,
-  minuti: number,
-  difficolta: 1 | 2 | 3,
-  categoria: string | undefined,
-  righe: Riga[],
-  passaggi: string[],
-  extra: { porzioni?: number; mesi?: number[]; allergeni?: Allergene[] } = {},
-): RicettaBase {
-  return {
-    id: `sys:${slug}`,
-    origine: 'sistema',
-    titolo,
-    portata,
-    porzioni_base: extra.porzioni ?? 4,
-    minuti,
-    difficolta,
-    categoria_conservazione: categoria,
-    mesi_stagione: extra.mesi,
-    allergeni_dichiarati: extra.allergeni ?? [],
-    passaggi,
-    ingredienti: righe.map(([ing, quantita, opzioni]) => {
-      const dati = INGREDIENTI_PER_ID.get(`ing:${ing}`);
-      if (!dati) throw new Error(`Ingrediente sconosciuto nella ricetta ${slug}: ${ing}`);
-      return {
-        ingrediente_id: dati.id,
-        testo: opzioni?.testo ?? dati.nome,
-        quantita,
-        unita: dati.unita,
-        scalabile: true,
-        opzionale: opzioni?.opzionale ?? false,
-        sostituti: [],
-      };
-    }),
-  };
-}
-
-const ESTATE = [6, 7, 8, 9];
-
-export const RICETTE_SISTEMA: RicettaBase[] = [
+const CLASSICHE: RicettaBase[] = [
   r('spaghetti_aglio_olio', 'Spaghetti aglio, olio e peperoncino', 'primo', 15, 1, 'pasta_condita',
     [['spaghetti', 320], ['aglio', 10], ['olio_evo', 50], ['peperoncino', 2], ['prezzemolo', 10, { opzionale: true }], ['sale', 10]],
     ['Cuoci gli spaghetti in abbondante acqua salata.', "Nel frattempo scalda l'olio in padella con l'aglio a fettine e il peperoncino, senza far bruciare l'aglio.", 'Scola la pasta al dente tenendo un mestolo di acqua di cottura.', "Salta gli spaghetti in padella con un po' di acqua di cottura e il prezzemolo tritato."]),
@@ -183,5 +127,7 @@ export const RICETTE_SISTEMA: RicettaBase[] = [
     ['Monta le uova con lo zucchero, aggiungi il burro fuso e il latte.', 'Unisci la farina setacciata con il lievito e la scorza di limone.', 'Versa in una tortiera, copri con le mele a fettine.', 'Cuoci in forno a 180 °C per 45 minuti.'],
     { porzioni: 8 }),
 ];
+
+export const RICETTE_SISTEMA: RicettaBase[] = [...CLASSICHE, ...ITALIANE, ...ESTERE];
 
 export const RICETTE_SISTEMA_PER_ID: ReadonlyMap<string, RicettaBase> = new Map(RICETTE_SISTEMA.map((x) => [x.id, x]));
