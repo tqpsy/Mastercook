@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { googleConfigurato } from '../config';
 import { accedi, collegaNucleo, esci, useAccount } from '../nucleo/account';
 import { useNucleo } from '../nucleo/contesto';
-import { leggiNuclei } from '../nucleo/registro';
+import { leggiNuclei, rimuoviNucleoLocale } from '../nucleo/registro';
+import { useSessione } from '../stato/sessione';
 import { riprendiSync, sincronizzaOra, useSync, type StatoSync } from '../nucleo/sync';
 import { richiediToken, tokenValido } from '../piattaforma/google';
 import { BottoneGoogle } from './BottoneGoogle';
@@ -31,6 +32,7 @@ export function Sincronizzazione() {
   const ctx = useNucleo();
   const email = useAccount((s) => s.email);
   const sync = useSync();
+  const scegliNucleo = useSessione((x) => x.scegliNucleo);
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const collegato = !!leggiNuclei().find((n) => n.id === ctx.nucleo.id)?.drive;
@@ -96,16 +98,38 @@ export function Sincronizzazione() {
         )}
         {errore && <p className="esito-errore">{errore}</p>}
         {email && (
-          <button
-            type="button"
-            className="bottone-testo"
-            onClick={() => {
-              esci();
-              mostraAvviso('Sei uscito: i dati restano su questo dispositivo e su Drive');
-            }}
-          >
-            Esci dall’account Google
-          </button>
+          <div className="sezione">
+            <p className="testo-tenue piccolo">Esci quando il telefono non è tuo o lo presti: i dati restano al sicuro sul tuo Drive.</p>
+            <div className="azioni">
+              <button
+                type="button"
+                className="bottone secondario piccolo"
+                onClick={() => {
+                  esci();
+                  mostraAvviso('Sei uscito: i dati restano su questo dispositivo e su Drive');
+                }}
+              >
+                Esci
+              </button>
+              {collegato && (
+                <button
+                  type="button"
+                  className="bottone pericolo piccolo"
+                  onClick={() => {
+                    if (!confirm('Uscire e togliere i dati da questo dispositivo? Restano sul tuo Google Drive e li ritrovi accedendo di nuovo.')) return;
+                    esci();
+                    for (const n of leggiNuclei().filter((x) => x.drive)) {
+                      rimuoviNucleoLocale(n.id);
+                      for (const tipo of ['dati', 'storico']) indexedDB.deleteDatabase(`masterfood-${n.id}-${tipo}`);
+                    }
+                    scegliNucleo(leggiNuclei()[0]?.id ?? null);
+                  }}
+                >
+                  Esci e togli i dati da qui
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
