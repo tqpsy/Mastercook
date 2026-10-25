@@ -136,6 +136,7 @@ export function gruppoIngrediente(ing: Ingrediente | undefined): GruppoAlimentar
   const diretto = GRUPPO_PER_ID[ing.id];
   if (diretto) return diretto;
   if (AROMI.has(ing.id)) return undefined;
+  if (ing.dieta) return ing.dieta;
   if (ing.reparto === 'pesce') return 'pesce';
   if (ing.reparto === 'gastronomia' && ing.classi.includes('latticini')) return 'formaggi';
   if (ing.reparto === 'frutta_verdura') return 'verdura';

@@ -3,7 +3,7 @@ import { contaVoci, dietaDaGemini, leggiDietaDaTesto, leggiVoce } from './dieta'
 
 describe('leggiVoce', () => {
   it('legge alimento e grammi in più forme', () => {
-    expect(leggiVoce('Pasta integrale 80 g')).toMatchObject({ testo: 'Pasta integrale', quantita_g: 80, gruppo: 'cereali', ingrediente_id: 'ing:pasta' });
+    expect(leggiVoce('Pasta integrale 80 g')).toMatchObject({ testo: 'Pasta integrale', quantita_g: 80, gruppo: 'cereali', ingrediente_id: 'ing:pasta_integrale' });
     expect(leggiVoce('g 150 di merluzzo')).toMatchObject({ testo: 'Merluzzo', quantita_g: 150, gruppo: 'pesce' });
     expect(leggiVoce('1 vasetto di yogurt bianco')).toMatchObject({ quantita: '1 vasetto', gruppo: 'latte_yogurt' });
     expect(leggiVoce('Latte parzialmente scremato 200 ml')).toMatchObject({ quantita_g: 200, gruppo: 'latte_yogurt' });
