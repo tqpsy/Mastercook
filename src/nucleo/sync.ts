@@ -4,7 +4,7 @@
  * (merge CRDT, nessun conflitto); se poi il documento locale ha dati che Drive non ha, cifra
  * e carica negli stessi id. Due dispositivi che caricano insieme convergono al ciclo successivo.
  * Quando: all'apertura, al ritorno in primo piano, al ritorno della rete, 5 s dopo una modifica
- * e ogni 5 minuti ad app aperta.
+ * e ogni 5 minuti ad app aperta. Dopo i dati si allineano anche le foto di casa (fotoDrive).
  */
 import { useEffect } from 'react';
 import * as Y from 'yjs';
@@ -14,6 +14,7 @@ import { decifraFile, cifraFile } from '../piattaforma/cifratura';
 import { richiediToken, tokenValido } from '../piattaforma/google';
 import { chiaveDelNucleo, emailAccount, useAccount, VERSIONE_CHIAVE } from './account';
 import { useNucleo } from './contesto';
+import { sincronizzaFoto } from './fotoDrive';
 import { leggiNuclei } from './registro';
 
 export type StatoSync = 'spento' | 'in_corso' | 'ok' | 'pausa' | 'offline' | 'errore';
@@ -103,6 +104,8 @@ export function MotoreSync() {
         const chiave = await chiaveDelNucleo(registrato);
         await sincronizzaDocumento(dati, file.dati, chiave, remoti.dati);
         await sincronizzaDocumento(storico, file.storico, chiave, remoti.storico);
+        // Le foto seguono i dati, ma un loro problema non ferma la sincronizzazione.
+        await sincronizzaFoto(nucleo.id).catch(() => undefined);
         useSync.setState({ stato: 'ok', ultima: new Date().toISOString(), messaggio: undefined });
       } catch (e) {
         if (e instanceof ErroreDrive && !e.autorizzazione) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EtichettaScadenza } from '../../componenti/EtichettaScadenza';
 import { unitaArticolo } from '../../componenti/FoglioArticolo';
@@ -10,7 +10,8 @@ import { cercaIngredienti } from '../../dominio/ricerca';
 import { useNucleo } from '../../nucleo/contesto';
 import { aggiungiArticolo, consumaArticolo, modificaArticolo, scadenzaStimata } from '../../nucleo/azioni';
 import { useInventario, useOggi } from '../../nucleo/derivati';
-import { leggiFotoZona, MASSIMO_FOTO, salvaFotoZona } from '../../piattaforma/archivioFoto';
+import { leggiZona, MASSIMO_FOTO, salvaZona } from '../../piattaforma/archivioFoto';
+import { sincronizzaFoto, useArrivoFoto } from '../../nucleo/fotoDrive';
 import { leggiChiave } from '../../piattaforma/chiaviApi';
 import { immagineDaFile } from '../../piattaforma/fotocamera';
 import { riconosciProdotti } from '../../piattaforma/gemini';
@@ -37,7 +38,8 @@ interface FotoMostrata {
   il: string;
 }
 
-const versoJpeg = (canvas: HTMLCanvasElement) => new Promise<Blob>((ok) => canvas.toBlob((b) => ok(b!), 'image/jpeg', 0.8));
+// Foto leggere: finiscono anche sul Drive di chi ha creato il nucleo, per tutta la famiglia.
+const versoJpeg = (canvas: HTMLCanvasElement) => new Promise<Blob>((ok) => canvas.toBlob((b) => ok(b!), 'image/jpeg', 0.7));
 
 export function FotoDispensa() {
   const ctx = useNucleo();
@@ -49,11 +51,20 @@ export function FotoDispensa() {
   const [inCorso, setInCorso] = useState(0);
   const conChiave = !!leggiChiave('gemini');
   const info = ZONE.find((z) => z.zona === zona)!;
+  const giro = useArrivoFoto((s) => s.giro);
+  const nucleoId = ctx.nucleo.id;
+
+  /** Allinea le foto con il Drive del nucleo; se ne arrivano di nuove la pagina si ricarica. */
+  const condividi = useCallback(() => {
+    sincronizzaFoto(nucleoId).catch(() => undefined);
+  }, [nucleoId]);
+
+  useEffect(condividi, [condividi]);
 
   useEffect(() => {
     let annullato = false;
     const creati: string[] = [];
-    leggiFotoZona(zona).then((elenco) => {
+    leggiZona(nucleoId, zona).then(({ foto: elenco }) => {
       if (annullato) return;
       setFoto(
         elenco.map((f) => {
@@ -66,10 +77,10 @@ export function FotoDispensa() {
     return () => {
       annullato = true;
       creati.forEach((u) => URL.revokeObjectURL(u));
-      setFoto([]);
-      setProposte(null);
     };
-  }, [zona]);
+  }, [zona, giro, nucleoId]);
+
+  useEffect(() => () => setProposte(null), [zona]);
 
   async function riconosci(canvas: HTMLCanvasElement) {
     setInCorso((n) => n + 1);
@@ -97,28 +108,32 @@ export function FotoDispensa() {
   }
 
   async function aggiungiFoto(file: File) {
-    const canvas = await immagineDaFile(file);
+    const canvas = await immagineDaFile(file, 1280);
     const blob = await versoJpeg(canvas);
     const nuova = { id: crypto.randomUUID(), blob, il: new Date().toISOString() };
-    const elenco = [...(await leggiFotoZona(zona)), nuova].slice(-MASSIMO_FOTO);
-    await salvaFotoZona(zona, elenco);
+    const elenco = [...(await leggiZona(nucleoId, zona)).foto, nuova].slice(-MASSIMO_FOTO);
+    await salvaZona(nucleoId, zona, elenco);
     setFoto((x) => [...x, { id: nuova.id, url: URL.createObjectURL(blob), il: nuova.il }].slice(-MASSIMO_FOTO));
+    condividi();
     if (conChiave) await riconosci(canvas);
   }
 
   async function togliFoto(id: string) {
-    await salvaFotoZona(
+    await salvaZona(
+      nucleoId,
       zona,
-      (await leggiFotoZona(zona)).filter((f) => f.id !== id),
+      (await leggiZona(nucleoId, zona)).foto.filter((f) => f.id !== id),
     );
     setFoto((x) => x.filter((f) => f.id !== id));
+    condividi();
   }
 
   async function ricomincia() {
     if (!confirm(`Togliere tutte le foto di ${info.nome.toLowerCase()} e rifarle da capo?`)) return;
-    await salvaFotoZona(zona, []);
+    await salvaZona(nucleoId, zona, []);
     setFoto([]);
     setProposte(null);
+    condividi();
   }
 
   const delLuogo = inventario.filter((v) => v.articolo.luogo === zona);
