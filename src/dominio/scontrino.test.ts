@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { abbinaRiga, espandi, leggiScontrino } from './scontrino';
+import { abbinaRiga, espandi, leggiScontrino, unisciParti } from './scontrino';
 
 const ESEMPIO = `SUPERMERCATO ESEMPIO
 Via Roma 1 - Milano
@@ -44,5 +44,18 @@ describe('scontrino', () => {
     expect(abbinaRiga('ZUCCHINE', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:zucchina');
     expect(abbinaRiga('SHOPPER', new Map(), new Set()).esito).toBe('da_scegliere');
     expect(abbinaRiga('XYZ BRAND 3', new Map([['xyz brand', 'ing:biscotti']]), new Set()).migliore?.ingrediente.id).toBe('ing:biscotti');
+  });
+});
+
+describe('unisciParti', () => {
+  it('tiene una volta sola le righe in comune tra due foto', () => {
+    const prima = 'SUPERMERCATO\nLATTE PS 1L 1,29\nPANE COMUNE 2,10';
+    const seconda = 'PANE COMUNE  2,10\nUOVA 6 2,49\nTOTALE 5,88';
+    expect(unisciParti([prima, seconda])).toBe('SUPERMERCATO\nLATTE PS 1L 1,29\nPANE COMUNE 2,10\nUOVA 6 2,49\nTOTALE 5,88');
+  });
+
+  it('senza righe in comune accoda tutto, anche due prodotti uguali comprati davvero', () => {
+    expect(unisciParti(['LATTE 1,29', 'UOVA 2,49'])).toBe('LATTE 1,29\nUOVA 2,49');
+    expect(unisciParti(['LATTE 1,29\nLATTE 1,29'])).toBe('LATTE 1,29\nLATTE 1,29');
   });
 });

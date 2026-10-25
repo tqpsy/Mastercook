@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EtichettaScadenza } from '../../componenti/EtichettaScadenza';
 import { unitaArticolo } from '../../componenti/FoglioArticolo';
+import { MiniatureFoto } from '../../componenti/MiniatureFoto';
 import { TornaIndietro } from '../../componenti/TornaIndietro';
 import { Chip, mostraAvviso } from '../../componenti/ui';
 import { descriviData } from '../../dominio/date';
@@ -9,14 +10,20 @@ import { cercaIngredienti } from '../../dominio/ricerca';
 import { useNucleo } from '../../nucleo/contesto';
 import { aggiungiArticolo, consumaArticolo, modificaArticolo, scadenzaStimata } from '../../nucleo/azioni';
 import { useInventario, useOggi } from '../../nucleo/derivati';
-import { leggiFoto, salvaFoto } from '../../piattaforma/archivioFoto';
+import { leggiFotoZona, MASSIMO_FOTO, salvaFotoZona } from '../../piattaforma/archivioFoto';
 import { leggiChiave } from '../../piattaforma/chiaviApi';
 import { immagineDaFile } from '../../piattaforma/fotocamera';
 import { riconosciProdotti } from '../../piattaforma/gemini';
 import { emojiIngrediente } from '../../rif/emoji';
 import type { Ingrediente } from '../../rif/ingredienti';
 
-type Tipo = 'frigo' | 'dispensa';
+type Zona = 'frigo' | 'freezer' | 'dispensa';
+
+const ZONE: { zona: Zona; nome: string; consiglio: string }[] = [
+  { zona: 'frigo', nome: 'Frigo', consiglio: 'Una foto per ripiano, una per i cassetti e una per la portiera.' },
+  { zona: 'freezer', nome: 'Freezer', consiglio: 'Una foto per cassetto: apri e inquadra dall’alto.' },
+  { zona: 'dispensa', nome: 'Dispensa', consiglio: 'Una foto per ripiano o per mobile.' },
+];
 
 interface Proposta {
   nome: string;
@@ -24,43 +31,48 @@ interface Proposta {
   scelto: boolean;
 }
 
+interface FotoMostrata {
+  id: string;
+  url: string;
+  il: string;
+}
+
+const versoJpeg = (canvas: HTMLCanvasElement) => new Promise<Blob>((ok) => canvas.toBlob((b) => ok(b!), 'image/jpeg', 0.8));
+
 export function FotoDispensa() {
   const ctx = useNucleo();
   const oggi = useOggi();
   const inventario = useInventario();
-  const [tipo, setTipo] = useState<Tipo>('frigo');
-  const [url, setUrl] = useState<string | null>(null);
-  const [scattata, setScattata] = useState<string | null>(null);
+  const [zona, setZona] = useState<Zona>('frigo');
+  const [foto, setFoto] = useState<FotoMostrata[]>([]);
   const [proposte, setProposte] = useState<Proposta[] | null>(null);
-  const [inCorso, setInCorso] = useState(false);
+  const [inCorso, setInCorso] = useState(0);
   const conChiave = !!leggiChiave('gemini');
+  const info = ZONE.find((z) => z.zona === zona)!;
 
   useEffect(() => {
     let annullato = false;
-    let creato: string | null = null;
-    leggiFoto(`foto:${tipo}`).then((f) => {
-      if (annullato || !f) return;
-      creato = URL.createObjectURL(f.blob);
-      setUrl(creato);
-      setScattata(f.il);
+    const creati: string[] = [];
+    leggiFotoZona(zona).then((elenco) => {
+      if (annullato) return;
+      setFoto(
+        elenco.map((f) => {
+          const url = URL.createObjectURL(f.blob);
+          creati.push(url);
+          return { id: f.id, url, il: f.il };
+        }),
+      );
     });
     return () => {
       annullato = true;
-      if (creato) URL.revokeObjectURL(creato);
-      setUrl(null);
-      setScattata(null);
+      creati.forEach((u) => URL.revokeObjectURL(u));
+      setFoto([]);
       setProposte(null);
     };
-  }, [tipo]);
+  }, [zona]);
 
-  async function nuovaFoto(file: File) {
-    const canvas = await immagineDaFile(file);
-    const blob = await new Promise<Blob>((ok) => canvas.toBlob((b) => ok(b!), 'image/jpeg', 0.8));
-    await salvaFoto(`foto:${tipo}`, blob);
-    setUrl(URL.createObjectURL(blob));
-    setScattata(new Date().toISOString());
-    if (!conChiave) return;
-    setInCorso(true);
+  async function riconosci(canvas: HTMLCanvasElement) {
+    setInCorso((n) => n + 1);
     try {
       const visti = await riconosciProdotti(canvas);
       const presenti = new Set(inventario.map((v) => v.articolo.ingrediente_id));
@@ -75,58 +87,101 @@ export function FotoDispensa() {
         }
         nuove.push({ nome: v.nome, ingrediente: r.ingrediente, scelto: r.confidenza >= 0.85 });
       }
-      setProposte(nuove);
+      // Le foto di una zona si sommano: ogni prodotto proposto una volta sola.
+      setProposte((prima) => [...(prima ?? []), ...nuove.filter((n) => !prima?.some((p) => p.ingrediente.id === n.ingrediente.id))]);
     } catch (e) {
       mostraAvviso((e as Error).message === 'chiave' ? 'La chiave Gemini non è valida: controllala nelle impostazioni' : 'Riconoscimento non riuscito, riprova più tardi');
     } finally {
-      setInCorso(false);
+      setInCorso((n) => n - 1);
     }
   }
 
-  const delLuogo = inventario.filter((v) => v.articolo.luogo === tipo);
+  async function aggiungiFoto(file: File) {
+    const canvas = await immagineDaFile(file);
+    const blob = await versoJpeg(canvas);
+    const nuova = { id: crypto.randomUUID(), blob, il: new Date().toISOString() };
+    const elenco = [...(await leggiFotoZona(zona)), nuova].slice(-MASSIMO_FOTO);
+    await salvaFotoZona(zona, elenco);
+    setFoto((x) => [...x, { id: nuova.id, url: URL.createObjectURL(blob), il: nuova.il }].slice(-MASSIMO_FOTO));
+    if (conChiave) await riconosci(canvas);
+  }
+
+  async function togliFoto(id: string) {
+    await salvaFotoZona(
+      zona,
+      (await leggiFotoZona(zona)).filter((f) => f.id !== id),
+    );
+    setFoto((x) => x.filter((f) => f.id !== id));
+  }
+
+  async function ricomincia() {
+    if (!confirm(`Togliere tutte le foto di ${info.nome.toLowerCase()} e rifarle da capo?`)) return;
+    await salvaFotoZona(zona, []);
+    setFoto([]);
+    setProposte(null);
+  }
+
+  const delLuogo = inventario.filter((v) => v.articolo.luogo === zona);
+  const ultima = foto.reduce<string | null>((m, f) => (!m || f.il > m ? f.il : m), null);
+  const piena = foto.length >= MASSIMO_FOTO;
 
   return (
     <section className="pagina">
       <TornaIndietro a="/aggiungi" />
       <div className="saluto">
-        <h1>Foto di frigo e dispensa</h1>
-        <p className="sottotitolo">Una foto aggiornata per tipo: utile quando sei al supermercato.</p>
+        <h1>Foto di frigo, freezer e dispensa</h1>
+        <p className="sottotitolo">Tieni le foto aggiornate: utili quando sei al supermercato.</p>
       </div>
       <div className="chips">
-        <Chip attivo={tipo === 'frigo'} onClick={() => setTipo('frigo')}>
-          Frigo
-        </Chip>
-        <Chip attivo={tipo === 'dispensa'} onClick={() => setTipo('dispensa')}>
-          Dispensa
-        </Chip>
+        {ZONE.map((z) => (
+          <Chip key={z.zona} attivo={zona === z.zona} onClick={() => setZona(z.zona)}>
+            {z.nome}
+          </Chip>
+        ))}
       </div>
-      {url && (
-        <figure className="sezione" style={{ margin: 0 }}>
-          <img src={url} alt={`Foto del ${tipo}`} style={{ width: '100%', borderRadius: 'var(--raggio)' }} />
-          {scattata && <figcaption className="testo-tenue piccolo">Scattata {descriviData(scattata.slice(0, 10), oggi)}</figcaption>}
-        </figure>
+      <p className="testo-tenue piccolo">
+        {info.consiglio} Fino a {MASSIMO_FOTO} foto.
+      </p>
+      {foto.length > 0 && (
+        <div className="sezione">
+          <MiniatureFoto foto={foto} descrizione={`foto ${info.nome.toLowerCase()}`} onTogli={togliFoto} />
+          {ultima && (
+            <p className="testo-tenue piccolo">
+              {foto.length} foto · ultima scattata {descriviData(ultima.slice(0, 10), oggi)}
+            </p>
+          )}
+        </div>
       )}
-      <label className="bottone">
-        {url ? 'Scatta una nuova foto' : 'Scatta la foto'}
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="nascosto-visivamente"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) nuovaFoto(f);
-            e.target.value = '';
-          }}
-        />
-      </label>
+      <div className="azioni colonna">
+        {!piena && (
+          <label className="bottone">
+            {foto.length ? 'Aggiungi un’altra foto' : 'Scatta la prima foto'}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="nascosto-visivamente"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) aggiungiFoto(f);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        )}
+        {foto.length > 0 && (
+          <button type="button" className="bottone secondario" onClick={ricomincia}>
+            Rifai tutte le foto
+          </button>
+        )}
+      </div>
       {!conChiave && (
         <p className="testo-tenue piccolo">
-          Con una chiave Gemini personale Masterfood riconosce i prodotti nella foto e ti propone di aggiungerli.{' '}
+          Con una chiave Gemini personale Masterfood riconosce i prodotti nelle foto e ti propone di aggiungerli.{' '}
           <Link to="/impostazioni">Aggiungila nelle impostazioni</Link>.
         </p>
       )}
-      {inCorso && <p className="testo-tenue">Riconosco i prodotti nella foto…</p>}
+      {inCorso > 0 && <p className="testo-tenue">Riconosco i prodotti nella foto…</p>}
 
       {proposte && (
         <div className="sezione">
@@ -167,8 +222,8 @@ export function FotoDispensa() {
                       ingrediente_id: ing.id,
                       unita: ing.unita,
                       quantita: ing.formato ?? 1,
-                      luogo: tipo,
-                      data_scadenza: scadenzaStimata(ing.id, tipo),
+                      luogo: zona,
+                      data_scadenza: scadenzaStimata(ing.id, zona),
                       tipo_scadenza: 'stimata',
                       origine: 'foto',
                     });
@@ -184,10 +239,10 @@ export function FotoDispensa() {
         </div>
       )}
 
-      {url && delLuogo.length > 0 && (
+      {foto.length > 0 && delLuogo.length > 0 && (
         <div className="sezione">
           <h2>C’è ancora?</h2>
-          <p className="testo-tenue piccolo">Confronta la foto con l’inventario: segna quello che è finito.</p>
+          <p className="testo-tenue piccolo">Confronta le foto con l’inventario: segna quello che è finito.</p>
           <ul className="elenco">
             {delLuogo.map((v) => (
               <li key={v.articolo.id} className="voce" style={{ cursor: 'default' }}>

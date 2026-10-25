@@ -1077,3 +1077,68 @@ fieldset.campo {
   opacity: 0.6;
   cursor: default;
 }
+
+.griglia-foto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.griglia-foto li {
+  position: relative;
+}
+
+.griglia-foto .apri-foto {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--linea);
+  border-radius: var(--raggio);
+  overflow: hidden;
+  background: var(--superficie);
+  cursor: zoom-in;
+}
+
+.griglia-foto img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+.griglia-foto .togli-foto {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.griglia-foto .numero-foto {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.video-qr {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--raggio);
+  background: #000;
+}

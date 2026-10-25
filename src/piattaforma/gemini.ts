@@ -1,5 +1,5 @@
 /**
- * Riconoscimento dei prodotti in una foto di frigo o dispensa con Gemini e la chiave dell'utente.
+ * Riconoscimento dei prodotti in una foto di frigo, freezer o dispensa con Gemini e la chiave dell'utente.
  * Al modello va solo la foto; la risposta (nomi generici e quantità stimate) viene poi collegata
  * agli ingredienti sul dispositivo e confermata dall'utente: la foto non rimuove mai nulla.
  */
@@ -12,7 +12,7 @@ export interface ProdottoVisto {
 
 const MODELLI = ['gemini-2.5-flash', 'gemini-flash-latest'];
 const ISTRUZIONI =
-  'Elenca gli alimenti visibili in questa foto di un frigorifero o di una dispensa. ' +
+  'Elenca gli alimenti visibili in questa foto di un frigorifero, di un freezer o di una dispensa (può essere un solo ripiano, un cassetto o la portiera). ' +
   'Usa nomi generici in italiano (es. "latte", "uova", "zucchine", non le marche) e una stima della quantità visibile. ' +
   'Rispondi solo con JSON: [{"nome": string, "quantita": string}]. Se non vedi alimenti rispondi [].';
 
