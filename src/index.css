@@ -1260,3 +1260,185 @@ fieldset.campo {
 .guida-punti span.attivo {
   background: var(--oliva);
 }
+
+/* ───────── Modalità supermercato ───────── */
+
+.modo-spesa {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.spesa-testa {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  background: var(--sfondo);
+  border-bottom: 1px solid var(--linea);
+}
+
+.spesa-riga-testa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spesa-conto {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.spesa-avanzamento {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+
+.spesa-avanzamento span {
+  display: block;
+  height: 100%;
+  background: var(--oliva);
+  transition: width 0.25s ease;
+}
+
+.spesa-stato {
+  font-size: 0.85rem;
+  color: var(--tenue);
+}
+
+.spesa-stato.attivo::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--oliva);
+  vertical-align: 1px;
+}
+
+.spesa-corpo {
+  flex: 1;
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 96px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.spesa-reparto {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spesa-reparto h2 {
+  font-family: var(--carattere-testo);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  margin: 0 4px;
+}
+
+.spesa-reparto ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: var(--raggio);
+  overflow: hidden;
+}
+
+.spesa-reparto li + li {
+  border-top: 1px solid var(--linea);
+}
+
+/* Tutta la riga è il bersaglio: si spunta con il pollice, anche col carrello in mano. */
+.spesa-riga {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.spesa-riga:active {
+  background: var(--superficie-2);
+}
+
+.spesa-riga .casella {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border-width: 2.5px;
+}
+
+.spesa-riga .casella svg {
+  width: 22px;
+  height: 22px;
+}
+
+.spesa-testo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spesa-nome {
+  font-size: 1.3rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.spesa-dettaglio {
+  font-size: 1rem;
+  color: var(--tenue);
+}
+
+.spesa-emoji {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.spesa-riga.presa .spesa-nome {
+  text-decoration: line-through;
+  color: var(--tenue);
+  font-weight: 500;
+}
+
+.spesa-riga.presa .spesa-emoji {
+  opacity: 0.5;
+}
+
+.carrello ul {
+  background: var(--superficie-2);
+}
+
+.spesa-fine {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* Nessuna barra in basso qui: l'avviso scende a filo dello schermo. */
+.modo-spesa .avviso-flottante {
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+}

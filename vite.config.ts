@@ -39,6 +39,8 @@ export default defineConfig({
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
           { src: 'pwa-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // Tenendo premuta l'icona sul telefono: dritti alla lista per reparti.
+        shortcuts: [{ name: 'Al supermercato', short_name: 'Spesa', url: `${base}spesa`, icons: [{ src: 'pwa-192.png', sizes: '192x192' }] }],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],

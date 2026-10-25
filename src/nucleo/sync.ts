@@ -5,6 +5,8 @@
  * e carica negli stessi id. Due dispositivi che caricano insieme convergono al ciclo successivo.
  * Quando: all'apertura, al ritorno in primo piano, al ritorno della rete, 5 s dopo una modifica
  * e ogni 5 minuti ad app aperta. Dopo i dati si allineano anche le foto di casa (fotoDrive).
+ * In modalità supermercato il ritmo si stringe (1 s dopo una spunta, controllo ogni 10 s, foto escluse)
+ * così chi fa la spesa in due vede le spunte dell'altro quasi subito.
  */
 import { useEffect } from 'react';
 import * as Y from 'yjs';
@@ -25,9 +27,21 @@ interface Sync {
   messaggio?: string;
   /** Cambia quando il nucleo viene collegato o si chiede una sincronizzazione subito. */
   richiesta: number;
+  /** Quante schermate chiedono il ritmo veloce (modalità supermercato). */
+  veloce: number;
 }
 
-export const useSync = create<Sync>(() => ({ stato: 'spento', richiesta: 0 }));
+export const useSync = create<Sync>(() => ({ stato: 'spento', richiesta: 0, veloce: 0 }));
+
+const RITMO_VELOCE_MS = 10_000;
+
+/** Tiene la sincronizzazione al ritmo veloce finché il componente resta montato. */
+export function useSyncVeloce(): void {
+  useEffect(() => {
+    useSync.setState((s) => ({ veloce: s.veloce + 1, richiesta: s.richiesta + 1 }));
+    return () => useSync.setState((s) => ({ veloce: Math.max(0, s.veloce - 1) }));
+  }, []);
+}
 
 export const sincronizzaOra = () => useSync.setState((s) => ({ richiesta: s.richiesta + 1 }));
 
@@ -79,7 +93,9 @@ export function MotoreSync() {
     let attesa: ReturnType<typeof setTimeout> | undefined;
     const remoti: Record<'dati' | 'storico', Remoto> = { dati: {}, storico: {} };
 
-    async function ciclo() {
+    const veloce = () => useSync.getState().veloce > 0;
+
+    async function ciclo(soloDati = false) {
       if (fermo) return;
       if (inCorso) {
         ancora = true;
@@ -105,7 +121,7 @@ export function MotoreSync() {
         await sincronizzaDocumento(dati, file.dati, chiave, remoti.dati);
         await sincronizzaDocumento(storico, file.storico, chiave, remoti.storico);
         // Le foto seguono i dati, ma un loro problema non ferma la sincronizzazione.
-        await sincronizzaFoto(nucleo.id).catch(() => undefined);
+        if (!soloDati) await sincronizzaFoto(nucleo.id).catch(() => undefined);
         useSync.setState({ stato: 'ok', ultima: new Date().toISOString(), messaggio: undefined });
       } catch (e) {
         if (e instanceof ErroreDrive && !e.autorizzazione) {
@@ -130,24 +146,28 @@ export function MotoreSync() {
     const dopoModifica = (_u: Uint8Array, origine: unknown) => {
       if (origine === 'drive') return;
       clearTimeout(attesa);
-      attesa = setTimeout(ciclo, 5000);
+      attesa = setTimeout(() => ciclo(veloce()), veloce() ? 1000 : 5000);
     };
-    const visibile = () => document.visibilityState === 'visible' && void ciclo();
+    const visibile = () => document.visibilityState === 'visible' && void ciclo(veloce());
     dati.on('update', dopoModifica);
     storico.on('update', dopoModifica);
     document.addEventListener('visibilitychange', visibile);
-    window.addEventListener('online', ciclo);
+    const inLinea = () => void ciclo();
+    window.addEventListener('online', inLinea);
     const periodico = setInterval(ciclo, 5 * 60 * 1000);
+    // Ad app nascosta non serve: al ritorno in primo piano parte comunque un ciclo.
+    const rapido = setInterval(() => veloce() && document.visibilityState === 'visible' && void ciclo(true), RITMO_VELOCE_MS);
     void ciclo();
 
     return () => {
       fermo = true;
       clearTimeout(attesa);
       clearInterval(periodico);
+      clearInterval(rapido);
       dati.off('update', dopoModifica);
       storico.off('update', dopoModifica);
       document.removeEventListener('visibilitychange', visibile);
-      window.removeEventListener('online', ciclo);
+      window.removeEventListener('online', inLinea);
     };
   }, [collegato, utente, nucleo.id, dati, storico, richiesta]);
 
