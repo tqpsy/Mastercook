@@ -4,6 +4,7 @@ import { ErrorePagina } from './componenti/Paracadute';
 import { Struttura } from './componenti/Struttura';
 import { ProviderNucleo } from './nucleo/contesto';
 import { MotoreSync } from './nucleo/sync';
+import { ChiaveCondivisa } from './nucleo/ChiaveCondivisa';
 import { leggiNuclei } from './nucleo/registro';
 import { leggiInvito } from './nucleo/invito';
 import { Benvenuto } from './pagine/Benvenuto';
@@ -76,6 +77,7 @@ export function App() {
   return (
     <ProviderNucleo key={esistente} nucleoId={esistente} attesa={<Caricamento />}>
       <MotoreSync />
+      <ChiaveCondivisa />
       <RouterProvider router={router} />
     </ProviderNucleo>
   );
