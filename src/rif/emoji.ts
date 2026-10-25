@@ -12,7 +12,11 @@ const PER_INGREDIENTE: Record<string, string> = {
   'ing:riso_risotti': '🍚', 'ing:farina': '🌾', 'ing:zucchero': '🍬', 'ing:miele': '🍯', 'ing:caffe': '☕', 'ing:olio_evo': '🫒',
   'ing:olive': '🫒', 'ing:vino_bianco': '🍷', 'ing:vino_rosso': '🍷', 'ing:mozzarella': '🧀', 'ing:parmigiano': '🧀',
   'ing:pecorino': '🧀', 'ing:ricotta': '🧀', 'ing:mascarpone': '🧀', 'ing:biscotti': '🍪', 'ing:savoiardi': '🍪', 'ing:noci': '🌰',
-  'ing:mandorle': '🌰', 'ing:ceci': '🫘', 'ing:fagioli': '🫘', 'ing:lenticchie': '🫘', 'ing:zucca': '🎃', 'ing:sale': '🧂',
+  'ing:mandorle': '🌰', 'ing:nocciole': '🌰', 'ing:anacardi': '🌰', 'ing:arachidi': '🥜', 'ing:pinoli': '🌰', 'ing:castagne': '🌰',
+  'ing:asparagi': '🥬', 'ing:zenzero': '🫚', 'ing:pesca': '🍑', 'ing:frutti_bosco': '🫐', 'ing:pita': '🫓', 'ing:polpo': '🐙',
+  'ing:calamari': '🦑', 'ing:vongole': '🦪', 'ing:feta': '🧀', 'ing:gorgonzola': '🧀', 'ing:scamorza': '🧀', 'ing:fontina': '🧀',
+  'ing:paneer': '🧀', 'ing:noodles': '🍜', 'ing:noodles_riso': '🍜', 'ing:soba': '🍜', 'ing:riso_basmati': '🍚', 'ing:riso_sushi': '🍙',
+  'ing:alga_nori': '🍙', 'ing:latte_cocco': '🥥', 'ing:cioccolato': '🍫', 'ing:salsa_soia': '🫙', 'ing:peperoncino': '🌶️', 'ing:ceci': '🫘', 'ing:fagioli': '🫘', 'ing:lenticchie': '🫘', 'ing:zucca': '🎃', 'ing:sale': '🧂',
 };
 
 const PER_REPARTO: Record<Reparto, string> = {

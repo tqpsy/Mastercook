@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { nomeCucina } from '../../rif/ricetteBase';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { IconaCuore } from '../../componenti/Icone';
 import { TornaIndietro } from '../../componenti/TornaIndietro';
@@ -71,6 +72,7 @@ export function DettaglioRicetta() {
           <span className="etichetta">{NOME_PORTATA[ricetta.portata]}</span>
           <span className="etichetta">{ricetta.minuti} min</span>
           <span className="etichetta">{DIFFICOLTA[ricetta.difficolta]}</span>
+          {ricetta.cucina && ricetta.cucina !== 'italiana' && <span className="etichetta">{nomeCucina(ricetta.cucina)}</span>}
           {ricetta.origine === 'personale' && <span className="etichetta accento">Tua ricetta</span>}
           {s.allergeni.map((a) => (
             <span key={a} className="etichetta attenzione">
@@ -145,6 +147,7 @@ export function DettaglioRicetta() {
             <li key={i}>{p}</li>
           ))}
         </ol>
+        {ricetta.provenienza && <p className="testo-tenue piccolo">Provenienza: {ricetta.provenienza}.</p>}
       </div>
 
       <div className="azioni">
