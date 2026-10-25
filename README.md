@@ -66,6 +66,8 @@ Una sola configurazione, fatta una volta dal proprietario dell'app in [Google Cl
 3. Crea un **ID client OAuth** di tipo *Applicazione web* con origini `https://tqpsy.github.io` e `http://localhost:5173`.
 4. Metti l'ID client in `ID_CLIENT_GOOGLE` in `src/config.ts` (non è un segreto). Per provare un altro progetto in locale basta `VITE_GOOGLE_CLIENT_ID` in `.env.local`.
 
+Se all'accesso compare **Errore 403: org_internal**, il tipo di utenti è rimasto *Interno*: in *Google Auth Platform → Pubblico* scegli *Rendi esterna*. Finché l'app è *In test* possono entrare solo gli account aggiunti in *Utenti di test* (massimo 100): aggiungi il tuo e quelli della famiglia, oppure *Pubblica l'app*.
+
 Gli utenti poi toccano solo **Accedi con Google**: l'app crea la cartella su Drive, cifra i dati e li sincronizza.
 
 ## Pubblicazione su GitHub Pages (gratis)
@@ -92,7 +94,7 @@ Le decisioni da cui nasce questo codice sono nel [riepilogo del progetto](https:
 
 ## Stato
 
-Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino in più foto o dal QR code con Tesseract.js sul telefono, foto di frigo, freezer e dispensa, più foto per zona (riconoscimento con chiave Gemini gratuita propria), ricette di sistema e personali, suggerimenti filtrati per allergie, accesso con Google e sincronizzazione cifrata sul Google Drive dell'amministratore, inviti in famiglia (Impostazioni → Invita in famiglia: la cartella si condivide con l'email Google del familiare, che entra dal link con il suo account e il suo nome; se Google lo chiede conferma i file con il selettore, che usa la chiave API pubblica `VITE_GOOGLE_API_KEY` limitata al sito), foto di casa condivise in un file cifrato sul Drive di chi ha creato il nucleo, "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON.
+Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino in più foto o dal QR code con Tesseract.js sul telefono, foto di frigo, freezer e dispensa, più foto per zona (riconoscimento con chiave Gemini gratuita propria), ricette di sistema e personali, suggerimenti filtrati per allergie, accesso con Google e sincronizzazione cifrata sul Google Drive dell'amministratore, inviti in famiglia (Impostazioni → Invita in famiglia: la cartella si condivide con l'email Google del familiare, che entra dal link con il suo account e il suo nome; se Google lo chiede conferma i file con il selettore, che usa la chiave API pubblica `VITE_GOOGLE_API_KEY` limitata al sito), foto di casa condivise in un file cifrato sul Drive di chi ha creato il nucleo, "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON, avvisi di scadenza sul telefono con una ricetta suggerita (Impostazioni → Avvisi di scadenza; ad app chiusa su Android con l'app installata), primo avvio guidato in tre passi (Drive, chiave Gemini, foto del frigo), emoji del profilo per uomo, donna, bambino e bambina.
 
 ## Prossimi passi
 

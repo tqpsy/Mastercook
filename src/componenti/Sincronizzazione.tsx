@@ -28,6 +28,19 @@ export function messaggioErroreGoogle(e: unknown): string {
   return `Non è andata a buon fine${testo ? ` (${testo})` : ''}: riprova.`;
 }
 
+/** Accede a Google se serve e salva il nucleo sul proprio Drive. */
+export async function salvaSuDrive(ctx: ReturnType<typeof useNucleo>, email: string | null | undefined): Promise<void> {
+  if (!email) await accedi();
+  else if (!tokenValido()) await richiediToken(email);
+  await collegaNucleo(ctx);
+  sincronizzaOra();
+}
+
+/** Il nucleo è già salvato su Google Drive. */
+export function nucleoSuDrive(nucleoId: string): boolean {
+  return !!leggiNuclei().find((n) => n.id === nucleoId)?.drive;
+}
+
 /** Account Google e salvataggio del nucleo sul proprio Google Drive: un solo tocco. */
 export function Sincronizzazione() {
   const ctx = useNucleo();
@@ -36,16 +49,13 @@ export function Sincronizzazione() {
   const scegliNucleo = useSessione((x) => x.scegliNucleo);
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const collegato = !!leggiNuclei().find((n) => n.id === ctx.nucleo.id)?.drive;
+  const collegato = nucleoSuDrive(ctx.nucleo.id);
 
   async function collega() {
     setInCorso(true);
     setErrore(null);
     try {
-      if (!email) await accedi();
-      else if (!tokenValido()) await richiediToken(email);
-      await collegaNucleo(ctx);
-      sincronizzaOra();
+      await salvaSuDrive(ctx, email);
       mostraAvviso('Fatto: i dati sono salvati anche sul tuo Google Drive');
     } catch (e) {
       setErrore(messaggioErroreGoogle(e));

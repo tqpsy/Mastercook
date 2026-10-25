@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ModuloMembro, membroVuoto } from '../../componenti/ModuloMembro';
 import { TornaIndietro } from '../../componenti/TornaIndietro';
 import { Vuoto, mostraAvviso } from '../../componenti/ui';
+import { emojiMembro } from '../../dominio/emojiMembro';
 import { useNucleo } from '../../nucleo/contesto';
 import { eliminaMembro, salvaMembro } from '../../nucleo/azioni';
 import { useMembri } from '../../nucleo/derivati';
@@ -30,7 +31,7 @@ export function Membro() {
         key={id}
         iniziale={membro ? { ...membroVuoto(), ...membro } : membroVuoto()}
         etichettaInvio={nuovo ? 'Aggiungi al nucleo' : 'Salva'}
-        intestazione={<h1>{nuovo ? 'Nuovo membro' : membro!.nome}</h1>}
+        intestazione={<h1>{nuovo ? 'Nuovo membro' : `${emojiMembro(membro!)} ${membro!.nome}`}</h1>}
         onInvia={(dati) => {
           salvaMembro(nucleo, dati, membro?.id);
           mostraAvviso(nuovo ? `${dati.nome} aggiunto al nucleo` : 'Profilo salvato');

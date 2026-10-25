@@ -3,13 +3,14 @@ import { leggiChiave, scriviChiave } from '../piattaforma/chiaviApi';
 import { verificaChiave, type EsitoVerifica } from '../piattaforma/verificaChiave';
 import { mostraAvviso } from './ui';
 
-export function ChiaveApi() {
+/** `compatta`: senza titolo né spiegazione, per la guida del primo avvio. */
+export function ChiaveApi({ compatta = false }: { compatta?: boolean }) {
   const [valore, setValore] = useState(() => leggiChiave('gemini'));
   const [esito, setEsito] = useState<EsitoVerifica | 'in_corso'>();
   return (
     <div className="sezione">
-      <h2>Funzioni avanzate</h2>
-      <p className="testo-tenue piccolo">
+      {!compatta && <h2>Funzioni avanzate</h2>}
+      <p className="testo-tenue piccolo" hidden={compatta}>
         Masterfood è gratuita. Per riconoscere i prodotti nelle foto serve solo una chiave Gemini tua, gratuita: le
         chiamate partono da questo telefono verso Google, e Masterfood non vede né la chiave né le foto. Senza chiave
         tutto il resto funziona, scontrini compresi (si leggono sul telefono).

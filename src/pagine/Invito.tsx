@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { emojiMembro } from '../dominio/emojiMembro';
 import { BottoneGoogle } from '../componenti/BottoneGoogle';
 import { ModuloMembro, membroVuoto } from '../componenti/ModuloMembro';
 import { messaggioErroreGoogle } from '../componenti/Sincronizzazione';
@@ -75,7 +76,7 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
         <div className="azioni colonna">
           {liberi.map((m) => (
             <button key={m.id} type="button" className="bottone secondario" disabled={inCorso} onClick={() => entra({ membroId: m.id }, passo.email)}>
-              Sono {m.nome}
+              {emojiMembro(m)} Sono {m.nome}
             </button>
           ))}
           <button type="button" className="bottone" disabled={inCorso} onClick={() => setPasso({ tipo: 'nuovo', email: passo.email })}>

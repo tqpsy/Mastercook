@@ -1,15 +1,19 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNucleo } from '../nucleo/contesto';
 import { AggiornamentoPwa } from './AggiornamentoPwa';
+import { usePromemoriaScadenze } from './AvvisiScadenza';
 import { AvvisoSync } from './AvvisoSync';
 import { BarraSchede } from './BarraSchede';
+import { GuidaIniziale, guidaDaMostrare } from './GuidaIniziale';
 import { IconaImpostazioni } from './Icone';
 import { AvvisoFlottante } from './ui';
 
 export function Struttura() {
   const { nucleo } = useNucleo();
   const { pathname } = useLocation();
+  usePromemoriaScadenze();
+  const [guida, setGuida] = useState(() => guidaDaMostrare(nucleo.id));
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
@@ -32,6 +36,7 @@ export function Struttura() {
       <AvvisoSync />
       <AvvisoFlottante />
       <BarraSchede />
+      {guida && <GuidaIniziale onFine={() => setGuida(false)} />}
     </div>
   );
 }

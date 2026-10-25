@@ -1229,3 +1229,34 @@ fieldset.campo {
   gap: 6px;
   font-size: 0.92rem;
 }
+
+/* Primo avvio guidato, sopra l'app. */
+.guida {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  background: var(--sfondo);
+}
+
+.guida-testa {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.guida-punti {
+  display: flex;
+  gap: 6px;
+}
+
+.guida-punti span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--linea);
+}
+
+.guida-punti span.attivo {
+  background: var(--oliva);
+}
