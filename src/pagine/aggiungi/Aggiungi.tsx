@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 import { IconaCodice, IconaFotocamera, IconaMatita, IconaScontrino } from '../../componenti/Icone';
 
 const AZIONI = [
-  { a: '/aggiungi/codice', icona: IconaCodice, nome: 'Scansiona il codice a barre', descrizione: 'Il modo più veloce: nome, formato e allergeni arrivano da Open Food Facts.' },
-  { a: '/aggiungi/scontrino', icona: IconaScontrino, nome: 'Scontrino', descrizione: 'Fotografalo, anche in più parti, o inquadra il QR code. Letto sul telefono; controlli tu le righe prima di aggiungerle.' },
-  { a: '/aggiungi/mano', icona: IconaMatita, nome: 'Aggiungi a mano', descrizione: 'Cerca un ingrediente e indica quantità e scadenza.' },
-  { a: '/aggiungi/foto', icona: IconaFotocamera, nome: 'Foto di frigo, freezer e dispensa', descrizione: 'Tieni le foto aggiornate di ripiani, cassetti e portiera; il riconoscimento automatico usa la tua chiave API.' },
+  { a: '/aggiungi/codice', icona: IconaCodice, nome: 'Scansiona il codice a barre', descrizione: 'Il modo più veloce per un prodotto confezionato.' },
+  { a: '/aggiungi/scontrino', icona: IconaScontrino, nome: 'Scontrino', descrizione: 'Fotografalo o inquadra il QR code: aggiunge tutta la spesa.' },
+  { a: '/aggiungi/mano', icona: IconaMatita, nome: 'Aggiungi a mano', descrizione: 'Cerca un ingrediente e scegli quanto.' },
+  { a: '/aggiungi/foto', icona: IconaFotocamera, nome: 'Foto di frigo, freezer e dispensa', descrizione: 'Per ricordarti cosa c’è quando sei al supermercato.' },
 ];
 
 export function Aggiungi() {

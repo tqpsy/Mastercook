@@ -104,8 +104,8 @@ export function EditorRicetta() {
           <span>Minuti</span>
           <input type="number" inputMode="numeric" min={1} value={r.minuti} onChange={(e) => aggiorna({ minuti: Math.max(1, Number(e.target.value)) })} />
         </label>
-        <label className="campo">
-          <span>Avanzi</span>
+        <label className="campo intera">
+          <span>Avanzi in frigo</span>
           <select value={r.categoria_conservazione ?? ''} onChange={(e) => aggiorna({ categoria_conservazione: e.target.value || undefined })}>
             <option value="">Non so (1 giorno)</option>
             {REGOLE_CONSERVAZIONE.map((c) => (

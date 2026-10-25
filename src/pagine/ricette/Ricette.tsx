@@ -96,7 +96,7 @@ export function Ricette() {
         <span className="nascosto-visivamente">Cerca una ricetta</span>
         <input type="search" value={testo} onChange={(e) => setTesto(e.target.value)} placeholder="Cerca una ricetta" />
       </label>
-      <div className="chips" style={{ flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: 4 }}>
+      <div className="chips scorrevoli">
         {PORTATE.map((p) => (
           <Chip key={p} attivo={portata === p} onClick={() => setPortata(p)}>
             {p === 'tutte' ? 'Tutte' : NOME_PORTATA[p]}
@@ -137,11 +137,11 @@ export function Ricette() {
         <div className="sezione">
           <h2>Altre idee</h2>
           <div className="griglia-ricette">
-            {(mostraAltre ? sezioni.altre : sezioni.altre.slice(0, 6)).map((s) => (
+            {(mostraAltre ? sezioni.altre : sezioni.altre.slice(0, 3)).map((s) => (
               <CartaRicetta key={s.ricetta.id} s={s} />
             ))}
           </div>
-          {sezioni.altre.length > 6 && (
+          {sezioni.altre.length > 3 && (
             <button type="button" className="bottone-testo" onClick={() => setMostraAltre((m) => !m)}>
               {mostraAltre ? 'Mostra meno' : `Mostra tutte (${sezioni.altre.length})`}
             </button>

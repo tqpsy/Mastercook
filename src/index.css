@@ -132,9 +132,8 @@ code {
   align-items: center;
   gap: 12px;
   padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
-  background: color-mix(in srgb, var(--sfondo) 92%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* Pieno, non trasparente: su molti Android la sfocatura non c'è e il testo sotto si legge attraverso. */
+  background: var(--sfondo);
   border-bottom: 1px solid var(--linea);
 }
 
@@ -424,6 +423,8 @@ code {
   background: var(--oliva);
   color: var(--su-colore);
   font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
 }
@@ -482,6 +483,18 @@ code {
   gap: 8px;
 }
 
+.altre-azioni summary {
+  width: fit-content;
+  padding: 6px 0;
+  color: var(--oliva);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.altre-azioni[open] summary {
+  margin-bottom: 8px;
+}
+
 .azioni.colonna {
   flex-direction: column;
 }
@@ -533,6 +546,24 @@ code {
   background: var(--superficie);
   cursor: pointer;
   font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+/* Fila di chip che scorre di lato invece di andare a capo. */
+.chips.scorrevoli {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px 2px;
+  scrollbar-width: none;
+}
+
+.chips.scorrevoli::-webkit-scrollbar {
+  display: none;
+}
+
+.chips.scorrevoli .chip {
+  flex-shrink: 0;
 }
 
 .chip[aria-pressed='true'] {
@@ -583,6 +614,14 @@ fieldset.campo {
   border-radius: 12px;
   background: var(--superficie);
   font-size: 16px;
+}
+
+.campo select {
+  text-overflow: ellipsis;
+}
+
+.riga-campi > .intera {
+  grid-column: 1 / -1;
 }
 
 .campo textarea {
@@ -1069,8 +1108,11 @@ fieldset.campo {
   border-radius: 999px;
   background: #fff;
   color: #1f1f1f;
-  font: 500 1rem/1 inherit;
   font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
   cursor: pointer;
 }
 .bottone-google:disabled {

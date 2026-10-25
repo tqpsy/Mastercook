@@ -15,7 +15,7 @@ import {
   scongelaArticolo,
   type MotivoSpreco,
 } from '../nucleo/azioni';
-import { useNomeMembro, useOggi } from '../nucleo/derivati';
+import { useAutoreAltrui, useOggi } from '../nucleo/derivati';
 import { regolaConservazione } from '../rif/conservazione';
 import { ingrediente } from '../rif/ingredienti';
 import { RICETTE_SISTEMA_PER_ID } from '../rif/ricette';
@@ -36,7 +36,7 @@ export function unitaArticolo(v: ArticoloValutato): string {
 
 export function FoglioArticolo({ valutato, onChiudi }: { valutato: ArticoloValutato; onChiudi: () => void }) {
   const ctx = useNucleo();
-  const nome = useNomeMembro();
+  const autore = useAutoreAltrui()(valutato.articolo.creato_da);
   const oggi = useOggi();
   const { articolo, quantita } = valutato;
   const ing = ingrediente(articolo.ingrediente_id);
@@ -54,6 +54,14 @@ export function FoglioArticolo({ valutato, onChiudi }: { valutato: ArticoloValut
       ? aggiungiGiorni(articolo.data_preparazione, regolaConservazione(ricetta?.categoria_conservazione).massimo)
       : undefined;
 
+  const nota = [
+    autore && `Aggiunto da ${autore}`,
+    articolo.data_preparazione && `Preparato ${descriviData(articolo.data_preparazione, oggi)}`,
+    articolo.tipo_scadenza === 'stimata' && 'Scadenza stimata: controlla la confezione',
+  ]
+    .filter(Boolean)
+    .join('. ');
+
   const chiudiCon = (testo: string, annulla?: () => void) => {
     mostraAvviso(testo, annulla);
     onChiudi();
@@ -67,11 +75,7 @@ export function FoglioArticolo({ valutato, onChiudi }: { valutato: ArticoloValut
           <span className="etichetta">{unitaArticolo(valutato)}</span>
           {articolo.stato_conservazione !== 'fresco' && <span className="etichetta">{articolo.stato_conservazione}</span>}
         </div>
-        <p className="testo-tenue piccolo">
-          Aggiunto da {nome(articolo.creato_da)}
-          {articolo.data_preparazione ? `, preparato ${descriviData(articolo.data_preparazione, oggi)}` : ''}
-          {articolo.tipo_scadenza === 'stimata' ? '. Scadenza stimata: controlla la confezione.' : '.'}
-        </p>
+        {nota && <p className="testo-tenue piccolo">{nota}.</p>}
       </div>
 
       {modo === 'azioni' && (
@@ -107,36 +111,43 @@ export function FoglioArticolo({ valutato, onChiudi }: { valutato: ArticoloValut
             </div>
           </div>
 
-          <div className="azioni">
-            {articolo.luogo !== 'freezer' && articolo.stato_conservazione === 'fresco' && !cotto && (
-              <button type="button" className="bottone secondario piccolo" onClick={() => (apriArticolo(ctx, articolo), chiudiCon('Segnato come aperto'))}>
-                L’ho aperto
+          <details className="altre-azioni">
+            <summary>Altre azioni</summary>
+            <div className="azioni">
+              {articolo.luogo !== 'freezer' && articolo.stato_conservazione === 'fresco' && !cotto && (
+                <button type="button" className="bottone secondario piccolo" onClick={() => (apriArticolo(ctx, articolo), chiudiCon('Segnato come aperto'))}>
+                  L’ho aperto
+                </button>
+              )}
+              {articolo.luogo !== 'freezer' && articolo.stato_conservazione !== 'scongelato' && (
+                <button type="button" className="bottone secondario piccolo" onClick={() => (congelaArticolo(ctx, articolo), chiudiCon('Spostato in freezer'))}>
+                  Congela
+                </button>
+              )}
+              {articolo.luogo === 'freezer' && (
+                <button
+                  type="button"
+                  className="bottone secondario piccolo"
+                  onClick={() => (scongelaArticolo(ctx, articolo), chiudiCon('Scongelato: da consumare entro domani'))}
+                >
+                  Scongela
+                </button>
+              )}
+              <button type="button" className="bottone secondario piccolo" onClick={() => setModo('modifica')}>
+                Modifica
               </button>
-            )}
-            {articolo.luogo !== 'freezer' && articolo.stato_conservazione !== 'scongelato' && (
-              <button type="button" className="bottone secondario piccolo" onClick={() => (congelaArticolo(ctx, articolo), chiudiCon('Spostato in freezer'))}>
-                Congela
+              <button
+                type="button"
+                className="bottone pericolo piccolo"
+                onClick={() => {
+                  eliminaArticolo(ctx, articolo.id);
+                  chiudiCon(`${articolo.nome} eliminato`, () => ripristinaArticolo(ctx, articolo.id));
+                }}
+              >
+                Elimina
               </button>
-            )}
-            {articolo.luogo === 'freezer' && (
-              <button type="button" className="bottone secondario piccolo" onClick={() => (scongelaArticolo(ctx, articolo), chiudiCon('Scongelato: da consumare entro domani'))}>
-                Scongela
-              </button>
-            )}
-            <button type="button" className="bottone secondario piccolo" onClick={() => setModo('modifica')}>
-              Modifica
-            </button>
-            <button
-              type="button"
-              className="bottone pericolo piccolo"
-              onClick={() => {
-                eliminaArticolo(ctx, articolo.id);
-                chiudiCon(`${articolo.nome} eliminato`, () => ripristinaArticolo(ctx, articolo.id));
-              }}
-            >
-              Elimina
-            </button>
-          </div>
+            </div>
+          </details>
         </>
       )}
 
