@@ -11,7 +11,7 @@
 import { useEffect } from 'react';
 import * as Y from 'yjs';
 import { create } from 'zustand';
-import { aggiornaFile, ErroreDrive, scaricaFile, versioneFile } from '../piattaforma/drive';
+import { aggiornaFile, elencaPermessi, ErroreDrive, scaricaFile, versioneFile } from '../piattaforma/drive';
 import { decifraFile, cifraFile } from '../piattaforma/cifratura';
 import { VUOTO, type Deposito } from '../piattaforma/deposito';
 import { aggiornaMembriRelay, depositoRelay, fileRelay, relayConfigurato } from '../piattaforma/firebase';
@@ -92,12 +92,12 @@ const schedeRelay = new Set<string>();
  * Per chi ha creato il nucleo: tiene la copia condivisa su Firebase e l'elenco delle email che
  * possono entrare (chi ha già un profilo collegato al suo account Google).
  */
-async function assicuraRelay(nucleoId: string, dati: Y.Doc): Promise<void> {
+async function assicuraRelay(nucleoId: string, cartella: string, dati: Y.Doc): Promise<void> {
   if (schedeRelay.has(nucleoId)) return;
-  const email = [...dati.getMap<Y.Map<unknown>>('membri').values()]
-    .filter((m) => !m.get('eliminato_il'))
-    .map((m) => m.get('utente_id'))
-    .filter((e): e is string => typeof e === 'string' && e.includes('@'));
+  const collegati = [...dati.getMap<Y.Map<unknown>>('membri').values()].filter((m) => !m.get('eliminato_il')).map((m) => m.get('utente_id'));
+  // Anche chi ha ricevuto un invito prima della copia condivisa e non è ancora entrato.
+  const invitati = (await elencaPermessi(cartella).catch(() => [])).filter((p) => p.type === 'user' && p.role !== 'owner').map((p) => p.emailAddress);
+  const email = [...collegati, ...invitati].filter((e): e is string => typeof e === 'string' && e.includes('@'));
   await aggiornaMembriRelay(nucleoId, { aggiungi: email });
   schedeRelay.add(nucleoId);
 }
@@ -156,7 +156,7 @@ export function MotoreSync() {
         }
         const conRelay = relayConfigurato() && (file.relay || proprietario);
         const viaRelay = async () => {
-          if (proprietario) await assicuraRelay(nucleo.id, dati);
+          if (proprietario) await assicuraRelay(nucleo.id, file.cartella, dati);
           await sincronizzaDocumento(dati, fileRelay(nucleo.id, 'dati'), chiave, remotiRelay.dati, depositoRelay);
           await sincronizzaDocumento(storico, fileRelay(nucleo.id, 'storico'), chiave, remotiRelay.storico, depositoRelay);
         };
