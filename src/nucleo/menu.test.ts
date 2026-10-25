@@ -55,3 +55,20 @@ describe('dieta nel menù', () => {
     expect(pasti(ctx).find((p) => p.tipo === 'cena')!.portate).toHaveLength(0);
   });
 });
+
+describe('ospiti nel menù', () => {
+  it('restano i numeri, le esigenze si dimenticano a pasto passato', async () => {
+    const { RICETTE_SISTEMA } = await import('../rif/ricette');
+    const { aggiungiRicettaAlPasto, impostaOspiti, dimenticaEsigenzeOspiti } = await import('./menu');
+    const ctx = { dati: new Y.Doc(), storico: new Y.Doc(), membroId: 'm1' };
+    aggiungiRicettaAlPasto(ctx, '2026-10-24', 'cena', RICETTE_SISTEMA[0]!, ['m1']);
+    impostaOspiti(ctx, '2026-10-24', 'cena', { adulti: 2, bambini: 1, allergie: ['latte'], restrizioni: ['vegetariano'] });
+    aggiungiRicettaAlPasto(ctx, '2026-10-24', 'cena', RICETTE_SISTEMA[1]!, ['m1']);
+    const pasto = () => collezione(ctx.dati, 'piani').get('2026-10-24:cena')!.toJSON();
+    expect(pasto().ospiti).toMatchObject({ adulti: 2, allergie: ['latte'] });
+    expect(dimenticaEsigenzeOspiti(ctx, '2026-10-25')).toBe(1);
+    expect(pasto().ospiti).toEqual({ adulti: 2, bambini: 1, allergie: [], restrizioni: [] });
+    impostaOspiti(ctx, '2026-10-24', 'cena', null);
+    expect(pasto().ospiti).toBeUndefined();
+  });
+});

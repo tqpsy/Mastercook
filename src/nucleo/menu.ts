@@ -7,7 +7,8 @@ import { quantitaVoce, type DietaLetta } from '../dominio/dieta';
 import { idDieta, idPasto, idPiano, type TipoPasto } from '../dominio/id';
 import { fabbisognoMenu } from '../dominio/menu';
 import type { PortataProposta, PastoProposto } from '../dominio/menuDieta';
-import type { DataLocale, MembroId, Pasto, PortataPianificata, Ricetta } from '../dominio/tipi';
+import { quantiOspiti } from '../dominio/ospiti';
+import type { DataLocale, MembroId, Ospiti, Pasto, PortataPianificata, Ricetta } from '../dominio/tipi';
 import { collezione, eliminaEntita, inserisciEntita, modificaEntita } from '../piattaforma/documento';
 import { ingrediente } from '../rif/ingredienti';
 import { aggiungiAllaLista } from './azioni';
@@ -67,7 +68,7 @@ function scriviPasto(ctx: Ctx, data: DataLocale, tipo: TipoPasto, aggiorna: (p: 
       ? (esistente.toJSON() as Pasto)
       : { data, tipo, membri_presenti: [], portate: [] };
   const nuovo = aggiorna(attuale);
-  const campi = { data, tipo, piano: idPiano(data), membri_presenti: nuovo.membri_presenti, portate: nuovo.portate };
+  const campi = { data, tipo, piano: idPiano(data), membri_presenti: nuovo.membri_presenti, portate: nuovo.portate, ospiti: nuovo.ospiti };
   if (esistente) {
     ctx.dati.transact(() => {
       esistente.delete('eliminato_il');
@@ -143,6 +144,26 @@ export function cambiaRicetta(ctx: Ctx, data: DataLocale, tipo: TipoPasto, indic
       i === indice ? { ...p, ricetta_id: ricetta.id, titolo: ricetta.titolo, ...(porzioni ? { porzioni_dieta: { ...p.porzioni_dieta, ...porzioni } } : {}) } : p,
     ),
   }));
+}
+
+/** Ospiti a un pasto (null li toglie). */
+export function impostaOspiti(ctx: Ctx, data: DataLocale, tipo: TipoPasto, ospiti: Ospiti | null): void {
+  scriviPasto(ctx, data, tipo, (pasto) => ({ ...pasto, ospiti: quantiOspiti(ospiti) ? ospiti! : undefined }));
+}
+
+/** Privacy: dei pasti passati restano solo i numeri degli ospiti, non allergie ed esigenze. */
+export function dimenticaEsigenzeOspiti(ctx: Pick<Ctx, 'dati'>, oggi: DataLocale): number {
+  let tolte = 0;
+  ctx.dati.transact(() => {
+    for (const pasto of collezione(ctx.dati, 'piani').values()) {
+      const data = pasto.get('data') as string | undefined;
+      const ospiti = pasto.get('ospiti') as Ospiti | undefined;
+      if (!data || data >= oggi || !ospiti || (!ospiti.allergie.length && !ospiti.restrizioni.length)) continue;
+      pasto.set('ospiti', { ...ospiti, allergie: [], restrizioni: [] });
+      tolte++;
+    }
+  });
+  return tolte;
 }
 
 export function togliPortata(ctx: Ctx, data: DataLocale, tipo: TipoPasto, indice: number): void {

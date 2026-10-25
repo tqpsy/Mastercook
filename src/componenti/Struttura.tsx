@@ -2,6 +2,8 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { riduciDateDiNascita, svuotaCestinoScaduto } from '../nucleo/azioni';
 import { useNucleo } from '../nucleo/contesto';
+import { dimenticaEsigenzeOspiti } from '../nucleo/menu';
+import { dataLocale } from '../dominio/id';
 import { preparaOcrOffline } from '../piattaforma/ocr';
 import { AggiornamentoPwa } from './AggiornamentoPwa';
 import { usePromemoriaScadenze } from './AvvisiScadenza';
@@ -20,10 +22,11 @@ export function Struttura() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-  // Una volta per apertura: via dal cestino ciò che ha più di 30 giorni, solo l'anno di nascita nei profili, e motore degli scontrini pronto anche offline.
+  // Una volta per apertura: via dal cestino ciò che ha più di 30 giorni, solo l'anno di nascita nei profili, esigenze degli ospiti dei pasti passati dimenticate, e motore degli scontrini pronto anche offline.
   useEffect(() => {
     svuotaCestinoScaduto(ctx);
     riduciDateDiNascita(ctx);
+    dimenticaEsigenzeOspiti(ctx, dataLocale());
     preparaOcrOffline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nucleo.id]);

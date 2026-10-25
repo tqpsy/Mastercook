@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { emojiMembro } from '../../dominio/emojiMembro';
 import { Link } from 'react-router-dom';
+import { FoglioOspiti } from '../../componenti/Ospiti';
 import { Chip, Vuoto } from '../../componenti/ui';
+import { descriviOspiti, quantiOspiti } from '../../dominio/ospiti';
 import { normalizza } from '../../dominio/ricerca';
 import { suggerisci, type Suggerimento } from '../../dominio/suggerimenti';
 import type { Portata } from '../../dominio/tipi';
@@ -37,9 +39,10 @@ export function CartaRicetta({ s }: { s: Suggerimento }) {
 /** Scelta di chi mangia: filtra allergie e scala le porzioni. */
 export function SceltaPresenti() {
   const membri = useMembri().filter((m) => m.attivo !== false);
-  const { presenti, scegliPresenti } = useSessione();
-  if (membri.length < 2) return null;
+  const { presenti, scegliPresenti, ospiti, scegliOspiti } = useSessione();
+  const [foglioOspiti, setFoglioOspiti] = useState(false);
   const attivi = presenti ?? membri.map((m) => m.id);
+  const n = quantiOspiti(ospiti);
   return (
     <div className="sezione">
       <span className="piccolo testo-tenue">Chi mangia</span>
@@ -49,6 +52,7 @@ export function SceltaPresenti() {
             key={m.id}
             attivo={attivi.includes(m.id)}
             onClick={() => {
+              if (membri.length < 2) return;
               const nuovi = attivi.includes(m.id) ? attivi.filter((id) => id !== m.id) : [...attivi, m.id];
               scegliPresenti(nuovi.length === membri.length ? null : nuovi.length ? nuovi : attivi);
             }}
@@ -56,7 +60,17 @@ export function SceltaPresenti() {
             {emojiMembro(m)} {m.nome}
           </Chip>
         ))}
+        <Chip attivo={n > 0} onClick={() => setFoglioOspiti(true)}>
+          {n ? `👥 ${n} ${n === 1 ? 'ospite' : 'ospiti'}` : '+ Ospiti'}
+        </Chip>
       </div>
+      {n > 0 && (
+        <span className="piccolo testo-tenue">
+          {descriviOspiti(ospiti)}
+          {ospiti!.allergie.length || ospiti!.restrizioni.length ? ', con le loro esigenze rispettate nelle ricette' : ''}.
+        </span>
+      )}
+      {foglioOspiti && <FoglioOspiti titolo="Ospiti di oggi" iniziale={ospiti} onSalva={scegliOspiti} onChiudi={() => setFoglioOspiti(false)} />}
     </div>
   );
 }
@@ -65,7 +79,8 @@ const PORTATE: (Portata | 'tutte')[] = ['tutte', 'primo', 'secondo', 'piatto_uni
 
 export function Ricette() {
   const presenti = useSessione((s) => s.presenti);
-  const ctx = useContestoSuggerimenti(presenti ?? undefined);
+  const ospiti = useSessione((s) => s.ospiti);
+  const ctx = useContestoSuggerimenti(presenti ?? undefined, ospiti);
   const ricette = useRicette();
   const [testo, setTesto] = useState('');
   const [portata, setPortata] = useState<Portata | 'tutte'>('tutte');

@@ -85,6 +85,22 @@ export function valutaRighe(ricetta: Ricetta, sommaFattori: number, disponibilit
   });
 }
 
+/** Perché la ricetta non va bene a qualcuno dei presenti (allergie o restrizioni); undefined se va bene a tutti. */
+export function motivoEsclusione(ricetta: Ricetta, presenti: readonly Presente[], allergeni = allergeniRicetta(ricetta)): string | undefined {
+  const conflitti = allergeniInConflitto(new Set(allergeni), presenti.map((p) => p.allergie));
+  if (conflitti.length > 0) {
+    const chi = presenti.filter((p) => p.allergie.some((a) => conflitti.includes(a as Allergene))).map((p) => p.nome);
+    return `Contiene ${conflitti.map((c) => ALLERGENI_UE[c].toLowerCase()).join(', ')} (${chi.join(', ')})`;
+  }
+  const classi = new Set(ricetta.ingredienti.flatMap((r) => ingrediente(r.ingrediente_id)?.classi ?? []));
+  for (const p of presenti) {
+    for (const restrizione of p.restrizioni) {
+      if (VIETATE[restrizione].some((c) => classi.has(c))) return `Non è ${NOME_RESTRIZIONE[restrizione]} (${p.nome})`;
+    }
+  }
+  return undefined;
+}
+
 export function valutaRicetta(ricetta: Ricetta, ctx: ContestoSuggerimenti): Suggerimento {
   const allergeni = allergeniRicetta(ricetta);
   const sommaFattori = ctx.presenti.reduce((s, p) => s + p.fattore_porzione, 0) || 1;
@@ -92,19 +108,8 @@ export function valutaRicetta(ricetta: Ricetta, ctx: ContestoSuggerimenti): Sugg
   const base = { ricetta, righe, allergeni, punteggio: 0, copertura: 0, mancanti: [], motivi: [] };
 
   // 1. Sicurezza prima di tutto.
-  const conflitti = allergeniInConflitto(new Set(allergeni), ctx.presenti.map((p) => p.allergie));
-  if (conflitti.length > 0) {
-    const chi = ctx.presenti.filter((p) => p.allergie.some((a) => conflitti.includes(a as Allergene))).map((p) => p.nome);
-    return { ...base, sezione: 'escluse', esclusione: `Contiene ${conflitti.map((c) => ALLERGENI_UE[c].toLowerCase()).join(', ')} (${chi.join(', ')})` };
-  }
-  const classi = new Set(ricetta.ingredienti.flatMap((r) => ingrediente(r.ingrediente_id)?.classi ?? []));
-  for (const p of ctx.presenti) {
-    for (const restrizione of p.restrizioni) {
-      if (VIETATE[restrizione].some((c) => classi.has(c))) {
-        return { ...base, sezione: 'escluse', esclusione: `Non è ${NOME_RESTRIZIONE[restrizione]} (${p.nome})` };
-      }
-    }
-  }
+  const esclusione = motivoEsclusione(ricetta, ctx.presenti, allergeni);
+  if (esclusione) return { ...base, sezione: 'escluse', esclusione };
 
   // 2. Punteggio.
   const conteggiate = righe.filter((r) => !r.riga.opzionale && !r.nonConteggiata);

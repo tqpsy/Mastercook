@@ -24,8 +24,9 @@ export function DettaglioRicetta() {
   const ricettaId = decodeURIComponent(id);
   const ricetta = useRicette().find((r) => r.id === ricettaId);
   const presenti = useSessione((s) => s.presenti);
+  const ospiti = useSessione((s) => s.ospiti);
   const membri = useMembri();
-  const ctx = useContestoSuggerimenti(presenti ?? undefined);
+  const ctx = useContestoSuggerimenti(presenti ?? undefined, ospiti);
   const nucleo = useNucleo();
   const meta = useMetaRicette().get(ricettaId);
   const articoli = useCollezione<ArticoloInventario>('inventario');
