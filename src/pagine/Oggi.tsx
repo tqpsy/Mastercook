@@ -6,7 +6,10 @@ import type { ArticoloValutato } from '../dominio/disponibilita';
 import { vistaLista } from '../dominio/lista';
 import { suggerisci } from '../dominio/suggerimenti';
 import type { ArticoloLista } from '../dominio/tipi';
-import { useContestoSuggerimenti, useDisponibilita, useInventario, useMembroCorrente, useRicette } from '../nucleo/derivati';
+import { useContestoSuggerimenti, useDisponibilita, useInventario, useMembroCorrente, useOggi, useRicette } from '../nucleo/derivati';
+import { NOME_PASTO } from '../dominio/dieta';
+import { ORDINE_PASTI, lunediDi } from '../dominio/menu';
+import { usePastiSettimana } from '../nucleo/hooksMenu';
 import { ElencoArticoli } from './Casa';
 import { CartaRicetta } from './ricette/Ricette';
 
@@ -26,6 +29,11 @@ export function Oggi() {
   const ctx = useContestoSuggerimenti();
   const ricette = useRicette();
   const [aperto, setAperto] = useState<ArticoloValutato | null>(null);
+  const oggi = useOggi();
+  const settimana = usePastiSettimana(lunediDi(oggi));
+  const menuOggi = settimana
+    .filter((p) => p.data === oggi && p.portate.length)
+    .sort((a, b) => ORDINE_PASTI.indexOf(a.tipo) - ORDINE_PASTI.indexOf(b.tipo));
 
   const daUsare = inventario.filter((v) => ['scaduto', 'oggi', 'in_scadenza', 'controlla'].includes(v.stato));
   const avanzi = inventario.filter((v) => v.articolo.ricetta_id && v.articolo.luogo !== 'freezer');
@@ -76,6 +84,31 @@ export function Oggi() {
           </div>
         </div>
       )}
+
+      <div className="sezione">
+        <div className="sezione-testa">
+          <h2>Menù di oggi</h2>
+          <Link to="/menu">Settimana</Link>
+        </div>
+        {menuOggi.length ? (
+          <ul className="elenco">
+            {menuOggi.map((p) => (
+              <li key={p.tipo}>
+                <Link className="voce" to="/menu">
+                  <span className="voce-testo">
+                    <span className="voce-dettaglio">{NOME_PASTO[p.tipo]}</span>
+                    <span className="voce-titolo">{p.portate.map((x) => x.titolo).join(' · ')}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="testo-tenue piccolo">
+            Niente in programma. <Link to="/menu">Prepara il menù</Link> o carica la dieta del dietista.
+          </p>
+        )}
+      </div>
 
       {avanzi.length > 0 && (
         <div className="sezione">

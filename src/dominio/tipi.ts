@@ -4,6 +4,7 @@
  * I campi derivati (quantità, scadenza effettiva, allergeni ricetta, da comprare…) non si salvano.
  */
 import type { Allergene } from './allergeni';
+import type { GruppoAlimentare } from './dieta';
 import type { Condizione, Sesso } from './fabbisogni';
 import type { GruppoNova, NutriScore, Voto } from './genuinita';
 import type { TipoPasto } from './id';
@@ -149,18 +150,63 @@ export interface ArticoloLista extends MetadatiComuni {
 }
 
 export interface PortataPianificata {
-  ricetta_id: string;
-  /** Copia del titolo: resta leggibile anche se la ricetta viene eliminata. */
+  /** Assente per le voci della dieta senza ricetta ("Frutta 150 g", "Pane integrale 50 g"). */
+  ricetta_id?: string;
+  /** Copia del titolo (o testo della voce): resta leggibile anche se la ricetta viene eliminata. */
   titolo: string;
   membri: MembroId[];
   porzioni_manuali?: number;
+  /** Membri per cui la portata viene dalla loro dieta: ricaricando la dieta si sostituiscono solo queste. */
+  dieta_di?: MembroId[];
+  /** Porzioni per membro calcolate dalle grammature della dieta (1 = una porzione della ricetta). */
+  porzioni_dieta?: Record<MembroId, number>;
+  /** Cosa prevede la dieta per questa portata, per membro ("Pasta integrale 80 g, zucchine 200 g"). */
+  note_dieta?: Record<MembroId, string>;
+  /** Ingrediente e grammi delle voci senza ricetta, per la lista della spesa. */
+  ingrediente_id?: string;
+  quantita_g?: number;
 }
 
-export interface Pasto {
+/** Entità della collezione `piani`, una per pasto: id `2026-10-27:cena`. */
+export interface Pasto extends Partial<MetadatiComuni> {
+  id?: string;
   data: DataLocale;
   tipo: TipoPasto;
   membri_presenti: MembroId[];
   portate: PortataPianificata[];
+}
+
+/** Un alimento prescritto, come scritto dal dietista e collegato agli ingredienti sul dispositivo. */
+export interface VoceDieta {
+  testo: string;
+  quantita_g?: number;
+  /** Quantità non in grammi: "1 vasetto", "2 fette". */
+  quantita?: string;
+  /** "Pasta o riso": alternative ammesse dal dietista. */
+  alternative?: string[];
+  ingrediente_id?: string;
+  gruppo?: GruppoAlimentare;
+}
+
+export interface PastoDieta {
+  tipo: TipoPasto;
+  voci: VoceDieta[];
+}
+
+export interface GiornoDieta {
+  /** Lunedì = 1 … domenica = 7. */
+  giorno: number;
+  pasti: PastoDieta[];
+}
+
+/** Dieta consegnata dal dietista a un membro (id `dieta:<membro>`). Dato relativo alla salute. */
+export interface DietaMembro extends MetadatiComuni {
+  membro_id: MembroId;
+  titolo?: string;
+  dietista?: string;
+  note: string[];
+  giorni: GiornoDieta[];
+  letta_con: 'gemini' | 'telefono';
 }
 
 export type TipoEventoStorico =
