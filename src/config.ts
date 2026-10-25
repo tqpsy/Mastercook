@@ -5,7 +5,7 @@
  */
 
 /** ID client OAuth "Applicazione web" del progetto Google Cloud di Masterfood. */
-const ID_CLIENT_GOOGLE = '';
+const ID_CLIENT_GOOGLE = '482205981080-7p0d3h797nbm2gtb9h3iediib5rcihs3.apps.googleusercontent.com';
 
 export const config = {
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || ID_CLIENT_GOOGLE,
