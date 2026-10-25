@@ -14,7 +14,9 @@ import { leggiZona, MASSIMO_FOTO, salvaZona, type FotoSalvata, type Visto } from
 import { sincronizzaFoto, useArrivoFoto } from '../../nucleo/fotoDrive';
 import { leggiChiave } from '../../piattaforma/chiaviApi';
 import { immagineDaFile } from '../../piattaforma/fotocamera';
-import { riconosciProdotti } from '../../piattaforma/gemini';
+import { riconosciProdotti, type ProdottoVisto } from '../../piattaforma/gemini';
+import { POSIZIONI } from '../../dominio/sistemazioneFrigo';
+import { ConsigliFrigo } from '../../componenti/ConsigliFrigo';
 import { emojiIngrediente } from '../../rif/emoji';
 import { ingrediente } from '../../rif/ingredienti';
 
@@ -43,11 +45,13 @@ const MESSAGGI_ERRORE: Record<string, string> = {
 };
 
 /** Collega i nomi visti da Gemini agli ingredienti, una volta sola ciascuno. */
-function collegaVisti(nomi: { nome: string }[]): Visto[] {
+function collegaVisti(nomi: ProdottoVisto[]): Visto[] {
   const visti: Visto[] = [];
   for (const v of nomi) {
     const [r] = cercaIngredienti(v.nome, 1);
-    if (r && r.confidenza >= 0.6 && !visti.some((x) => x.id === r.ingrediente.id)) visti.push({ id: r.ingrediente.id, nome: v.nome });
+    if (!r || r.confidenza < 0.6 || visti.some((x) => x.id === r.ingrediente.id)) continue;
+    const posizione = POSIZIONI.find((p) => p === v.posizione);
+    visti.push({ id: r.ingrediente.id, nome: v.nome, ...(posizione ? { posizione } : {}) });
   }
   return visti;
 }
@@ -113,7 +117,7 @@ export function FotoDispensa() {
     setAnalizzo((x) => new Set(x).add(id));
     try {
       const canvas = immagine instanceof HTMLCanvasElement ? immagine : await immagineDaFile(immagine, 1280);
-      const visti = collegaVisti(await riconosciProdotti(canvas));
+      const visti = collegaVisti(await riconosciProdotti(canvas, zona === 'frigo'));
       // Quello che è già in casa e si vede nella foto: aggiorna "visto il".
       const adesso = new Date().toISOString();
       for (const a of inventario.filter((x) => visti.some((v) => v.id === x.articolo.ingrediente_id))) modificaArticolo(ctx, a.articolo.id, { visto_il: adesso });
@@ -333,6 +337,17 @@ export function FotoDispensa() {
       )}
       {analizzate > 0 && daAggiungere.length === 0 && analizzo.size === 0 && (
         <p className="testo-tenue piccolo">Tutto quello che vedo nelle foto è già nell’inventario.</p>
+      )}
+
+      {zona === 'frigo' && (
+        <ConsigliFrigo
+          prodotti={
+            analizzate > 0
+              ? foto.flatMap((f) => (f.visti ?? []).map((v) => ({ id: v.id, posizione: POSIZIONI.find((p) => p === v.posizione) })))
+              : delLuogo.flatMap(({ v }) => (v.articolo.ingrediente_id ? [{ id: v.articolo.ingrediente_id }] : []))
+          }
+          dalleFoto={analizzate > 0}
+        />
       )}
 
       {foto.length > 0 && delLuogo.length > 0 && (
