@@ -79,18 +79,28 @@ const voceDa = (invito: Invito, membroId: string): VoceArchivio => ({
 });
 
 /**
- * Scarica il nucleo condiviso. Se Google non dà ancora all'app accesso ai file, li fa
- * confermare con il selettore di Google. Serve un token valido.
+ * Vero se l'app vede già i file del nucleo. Con drive.file Google chiede a ogni invitato di
+ * confermarli una volta sola col selettore; la conferma resta valida per l'account, su ogni telefono.
  */
-export async function scaricaNucleoCondiviso(invito: Invito): Promise<void> {
+export async function accessoAiFile(invito: Invito): Promise<boolean> {
   try {
     await scaricaFile(invito.d);
+    return true;
   } catch (e) {
-    if (!(e instanceof ErroreDrive) || (e.stato !== 404 && e.stato !== 403)) throw e;
-    const file = [invito.d, invito.s, ...(invito.f ? [invito.f] : [])];
-    const confermati = await confermaFile(file, tokenValido()!, `Conferma i file di «${invito.nome}»`);
-    if (!confermati.includes(invito.d) || !confermati.includes(invito.s)) throw new Error('file_non_confermati', { cause: e });
+    if (e instanceof ErroreDrive && (e.stato === 404 || e.stato === 403)) return false;
+    throw e;
   }
+}
+
+/** Apre il selettore di Google sui file del nucleo. Va chiamata da un tocco. */
+export async function confermaFileInvito(invito: Invito): Promise<void> {
+  const file = [invito.d, invito.s, ...(invito.f ? [invito.f] : [])];
+  const confermati = await confermaFile(file, tokenValido()!, `Seleziona i ${file.length} file e tocca «Seleziona»`);
+  if (!confermati.includes(invito.d) || !confermati.includes(invito.s)) throw new Error('file_non_confermati');
+}
+
+/** Scarica il nucleo condiviso, a file già accessibili. Serve un token valido. */
+export async function scaricaNucleoCondiviso(invito: Invito): Promise<void> {
   await scaricaNucleo(voceDa(invito, ''), invito.k);
 }
 

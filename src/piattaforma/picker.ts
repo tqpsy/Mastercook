@@ -17,7 +17,8 @@ interface Builder {
 }
 interface Picker {
   PickerBuilder: new () => Builder;
-  DocsView: new () => { setFileIds(ids: string): unknown };
+  DocsView: new () => { setFileIds(ids: string): unknown; setMode(m: unknown): unknown };
+  DocsViewMode: { LIST: unknown };
   Feature: { MULTISELECT_ENABLED: unknown; NAV_HIDDEN: unknown };
   Action: { PICKED: string; CANCEL: string };
   Response: { ACTION: string; DOCUMENTS: string };
@@ -56,6 +57,7 @@ export async function confermaFile(ids: string[], token: string, titolo: string)
   const picker = await caricaPicker();
   const vista = new picker.DocsView();
   vista.setFileIds(ids.join(','));
+  vista.setMode(picker.DocsViewMode.LIST);
   return new Promise<string[]>((ok) => {
     new picker.PickerBuilder()
       .addView(vista)
