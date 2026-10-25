@@ -5,11 +5,11 @@ import { ModuloMembro, membroVuoto } from '../componenti/ModuloMembro';
 import { messaggioErroreGoogle } from '../componenti/Sincronizzazione';
 import type { Membro } from '../dominio/tipi';
 import { accedi } from '../nucleo/account';
-import { completaIngresso, membriDelNucleo, scaricaNucleoCondiviso, type Invito as DatiInvito } from '../nucleo/invito';
+import { accessoAiFile, completaIngresso, confermaFileInvito, membriDelNucleo, scaricaNucleoCondiviso, type Invito as DatiInvito } from '../nucleo/invito';
 import { leggiNuclei } from '../nucleo/registro';
 import { useSessione } from '../stato/sessione';
 
-type Passo = { tipo: 'accedi' } | { tipo: 'chi'; email: string; membri: Membro[] } | { tipo: 'nuovo'; email: string };
+type Passo = { tipo: 'accedi' } | { tipo: 'conferma'; email: string } | { tipo: 'chi'; email: string; membri: Membro[] } | { tipo: 'nuovo'; email: string };
 
 /** Torna all'app normale, togliendo l'invito dall'indirizzo. */
 function chiudiInvito() {
@@ -18,7 +18,7 @@ function chiudiInvito() {
 
 function messaggioErrore(e: unknown): string {
   const testo = e instanceof Error ? e.message : '';
-  if (/file_non_confermati/.test(testo)) return 'Per entrare devi confermare entrambi i file nella finestra di Google.';
+  if (/file_non_confermati/.test(testo)) return 'Nella finestra di Google tocca tutti i file della lista, poi «Seleziona». Riprova.';
   if (/picker/.test(testo) || /^(404|403)$|notFound|forbidden|insufficient/i.test(testo))
     return 'Non vedo ancora i file condivisi: controlla di aver usato lo stesso account Google a cui è arrivato l’invito.';
   return messaggioErroreGoogle(e);
@@ -44,6 +44,54 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
       setErrore(messaggioErrore(e));
       setInCorso(false);
     }
+  }
+
+  /** A file accessibili: scarica il nucleo e, se l'account ha già un profilo, entra subito. */
+  async function scaricaEProsegui(email: string) {
+    await scaricaNucleoCondiviso(invito);
+    const membri = await membriDelNucleo(invito.n);
+    const gia = membri.find((m) => m.utente_id === email);
+    if (gia) return await entra({ membroId: gia.id }, email);
+    setPasso({ tipo: 'chi', email, membri });
+  }
+
+  if (passo.tipo === 'conferma') {
+    return (
+      <main className="benvenuto">
+        <div className="saluto">
+          <h1>Ultimo passo, una volta sola</h1>
+          <p className="sottotitolo">
+            Per proteggere il tuo Drive, Google fa entrare Masterfood solo nei file che scegli tu. Ti mostra i file del nucleo «{invito.nome}» che{' '}
+            {invito.da} ha condiviso con te.
+          </p>
+        </div>
+        <ol className="passaggi">
+          <li>Tocca ogni file della lista, finché sono tutti spuntati.</li>
+          <li>Tocca «Seleziona».</li>
+        </ol>
+        <p className="testo-tenue piccolo">Non dovrai rifarlo: vale per il tuo account su tutti i telefoni. Masterfood non vede gli altri file del tuo Drive.</p>
+        <button
+          type="button"
+          className="bottone pieno"
+          disabled={inCorso}
+          onClick={async () => {
+            setInCorso(true);
+            setErrore(null);
+            try {
+              await confermaFileInvito(invito);
+              await scaricaEProsegui(passo.email);
+            } catch (e) {
+              setErrore(messaggioErrore(e));
+            } finally {
+              setInCorso(false);
+            }
+          }}
+        >
+          {inCorso ? 'Scarico i dati…' : 'Apri la conferma di Google'}
+        </button>
+        {errore && <p className="esito-errore" role="alert">{errore}</p>}
+      </main>
+    );
   }
 
   if (passo.tipo === 'nuovo') {
@@ -106,11 +154,8 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
           setErrore(null);
           try {
             const email = await accedi();
-            await scaricaNucleoCondiviso(invito);
-            const membri = await membriDelNucleo(invito.n);
-            const gia = membri.find((m) => m.utente_id === email);
-            if (gia) return await entra({ membroId: gia.id }, email);
-            setPasso({ tipo: 'chi', email, membri });
+            if (!(await accessoAiFile(invito))) return setPasso({ tipo: 'conferma', email });
+            await scaricaEProsegui(email);
           } catch (e) {
             setErrore(messaggioErrore(e));
           } finally {
@@ -118,7 +163,7 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
           }
         }}
       />
-      <p className="testo-tenue piccolo">Usa l’account Google a cui {invito.da} ha mandato l’invito. Google potrebbe chiederti di confermare i file del nucleo.</p>
+      <p className="testo-tenue piccolo">Usa l’account Google a cui {invito.da} ha mandato l’invito. La prima volta Google ti chiede anche di confermare i file del nucleo.</p>
       {errore && <p className="esito-errore" role="alert">{errore}</p>}
       {leggiNuclei().length > 0 && (
         <button
