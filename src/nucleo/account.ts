@@ -5,7 +5,7 @@
  *   nascosta che Drive riserva all'app (appDataFolder), e in copia su questo dispositivo.
  */
 import { create } from 'zustand';
-import { esportaChiave, generaChiaveNucleo, importaChiave } from '../piattaforma/cifratura';
+import { cifraFile, esportaChiave, generaChiaveNucleo, importaChiave } from '../piattaforma/cifratura';
 import { applicaDocumentoCifrato, apriDocumentoLocale, collezione, esportaDocumentoCifrato } from '../piattaforma/documento';
 import { creaCartella, creaFile, leggiArchivio, scaricaFile, scriviArchivio } from '../piattaforma/drive';
 import { esciDaGoogle, leggiEmail, richiediToken } from '../piattaforma/google';
@@ -79,6 +79,8 @@ export interface VoceArchivio {
   dati: string;
   storico: string;
   chiave: string;
+  /** File cifrato con le foto di frigo, freezer e dispensa. */
+  foto?: string;
 }
 export interface Archivio {
   versione: 1;
@@ -115,7 +117,7 @@ export async function collegaNucleo(ctx: ContestoNucleo): Promise<NucleoLocale> 
     ...nucleo,
     nome,
     modalita: 'locale_drive',
-    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave },
+    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave, foto: voce.foto },
   };
   salvaNucleoLocale(collegato);
   return collegato;
@@ -128,7 +130,7 @@ export async function scaricaNucleo(voce: VoceArchivio): Promise<NucleoLocale> {
     nome: voce.nome,
     creato_il: new Date().toISOString(),
     modalita: 'locale_drive',
-    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave },
+    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave, foto: voce.foto },
   };
   const chiave = await chiaveDelNucleo(nucleo);
   for (const tipo of ['dati', 'storico'] as const) {
@@ -167,4 +169,21 @@ export async function recuperaNuclei(): Promise<string | null> {
   }
   if (!primo && errore) throw errore;
   return primo;
+}
+
+/**
+ * File delle foto del nucleo sul Drive di chi l'ha creato: si crea una volta sola, vuoto, così
+ * chi viene invitato riceve accesso anche a quello. Serve un token valido.
+ */
+export async function assicuraFileFoto(nucleoId: string): Promise<string> {
+  const nucleo = leggiNuclei().find((n) => n.id === nucleoId);
+  if (!nucleo?.drive) throw new Error('nucleo non collegato');
+  if (nucleo.drive.foto) return nucleo.drive.foto;
+  const vuoto = await cifraFile(await chiaveDelNucleo(nucleo), VERSIONE_CHIAVE, new TextEncoder().encode('{"versione":1,"zone":{}}'));
+  const { id } = await creaFile('nucleo-foto.mfd', nucleo.drive.cartella, vuoto);
+  salvaNucleoLocale({ ...nucleo, drive: { ...nucleo.drive, foto: id } });
+  const archivio = await leggiArchivio<Archivio>();
+  const voce = archivio?.contenuto.nuclei.find((n) => n.id === nucleoId);
+  if (voce) await annotaNellArchivio({ ...voce, foto: id });
+  return id;
 }

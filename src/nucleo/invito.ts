@@ -9,7 +9,7 @@ import { apriDocumentoLocale, collezione, modificaEntita } from '../piattaforma/
 import { condividi, ErroreDrive, scaricaFile } from '../piattaforma/drive';
 import { tokenValido } from '../piattaforma/google';
 import { confermaFile } from '../piattaforma/picker';
-import { annotaNellArchivio, scaricaNucleo, type VoceArchivio } from './account';
+import { annotaNellArchivio, assicuraFileFoto, scaricaNucleo, type VoceArchivio } from './account';
 import { salvaMembro, type DatiMembro } from './azioni';
 import type { ContestoNucleo } from './contesto';
 import { leggiNuclei, scriviMembroCorrente } from './registro';
@@ -26,6 +26,8 @@ export interface Invito {
   s: string;
   /** Chiave del nucleo (base64) */
   k: string;
+  /** File delle foto */
+  f?: string;
 }
 
 const base64url = (testo: string) => btoa(String.fromCharCode(...new TextEncoder().encode(testo))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -54,9 +56,10 @@ export async function invita(ctx: ContestoNucleo, email: string, nomeChiInvita: 
   const nucleo = leggiNuclei().find((n) => n.id === ctx.nucleo.id);
   if (!nucleo?.drive) throw new Error('nucleo non collegato');
   const nome = (collezione(ctx.dati, 'meta').get('nucleo')?.get('nome') as string | undefined) ?? nucleo.nome;
+  const foto = await assicuraFileFoto(nucleo.id);
   await condividi(nucleo.drive.cartella, email, `${nomeChiInvita} ti invita nel nucleo «${nome}» di Masterfood. Apri il link che ti ha mandato.`);
   return linkInvito(
-    { n: nucleo.id, nome, da: nomeChiInvita, c: nucleo.drive.cartella, d: nucleo.drive.dati, s: nucleo.drive.storico, k: nucleo.drive.chiave },
+    { n: nucleo.id, nome, da: nomeChiInvita, c: nucleo.drive.cartella, d: nucleo.drive.dati, s: nucleo.drive.storico, k: nucleo.drive.chiave, f: foto },
     location.origin,
     import.meta.env.BASE_URL,
   );
@@ -70,6 +73,7 @@ const voceDa = (invito: Invito, membroId: string): VoceArchivio => ({
   dati: invito.d,
   storico: invito.s,
   chiave: invito.k,
+  foto: invito.f,
 });
 
 /**
@@ -81,7 +85,8 @@ export async function scaricaNucleoCondiviso(invito: Invito): Promise<void> {
     await scaricaFile(invito.d);
   } catch (e) {
     if (!(e instanceof ErroreDrive) || (e.stato !== 404 && e.stato !== 403)) throw e;
-    const confermati = await confermaFile([invito.d, invito.s], tokenValido()!, `Conferma i file di «${invito.nome}»`);
+    const file = [invito.d, invito.s, ...(invito.f ? [invito.f] : [])];
+    const confermati = await confermaFile(file, tokenValido()!, `Conferma i file di «${invito.nome}»`);
     if (!confermati.includes(invito.d) || !confermati.includes(invito.s)) throw new Error('file_non_confermati', { cause: e });
   }
   await scaricaNucleo(voceDa(invito, ''));
