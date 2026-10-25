@@ -33,6 +33,7 @@ jobs:
         env:
           BASE_URL_APP: /${{ github.event.repository.name }}/
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_API_KEY: ${{ vars.VITE_GOOGLE_API_KEY }}
       # GitHub Pages non conosce le rotte dell'app: 404.html rimanda a index.html.
       - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5

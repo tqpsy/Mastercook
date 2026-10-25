@@ -92,9 +92,9 @@ Le decisioni da cui nasce questo codice sono nel [riepilogo del progetto](https:
 
 ## Stato
 
-Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino in più foto o dal QR code con Tesseract.js (Google Vision facoltativa, con chiave propria), foto di frigo, freezer e dispensa, più foto per zona (riconoscimento con chiave Gemini gratuita propria), ricette di sistema e personali, suggerimenti filtrati per allergie, accesso con Google e sincronizzazione cifrata sul Google Drive dell'amministratore, "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON.
+Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino in più foto o dal QR code con Tesseract.js (Google Vision facoltativa, con chiave propria), foto di frigo, freezer e dispensa, più foto per zona (riconoscimento con chiave Gemini gratuita propria), ricette di sistema e personali, suggerimenti filtrati per allergie, accesso con Google e sincronizzazione cifrata sul Google Drive dell'amministratore, inviti in famiglia (Impostazioni → Invita in famiglia: la cartella si condivide con l'email Google del familiare, che entra dal link con il suo account e il suo nome; se Google lo chiede conferma i file con il selettore, che usa la chiave API pubblica `VITE_GOOGLE_API_KEY` limitata al sito), "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON.
 
 ## Prossimi passi
 
-1. **Inviti per i familiari:** codice o email, condivisione dei file Drive (`permissions.create`) e conferma del membro con Google Picker.
+1. **Foto condivise:** le foto di frigo, freezer e dispensa sul Drive di chi ha creato il nucleo.
 2. **Promemoria push** per le scadenze e piano della settimana.

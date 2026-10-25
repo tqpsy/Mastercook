@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { Struttura } from './componenti/Struttura';
 import { ProviderNucleo } from './nucleo/contesto';
 import { MotoreSync } from './nucleo/sync';
 import { leggiNuclei } from './nucleo/registro';
+import { leggiInvito } from './nucleo/invito';
 import { Benvenuto } from './pagine/Benvenuto';
+import { Invito } from './pagine/Invito';
 import { Casa } from './pagine/Casa';
 import { Lista } from './pagine/Lista';
 import { Oggi } from './pagine/Oggi';
@@ -55,6 +58,8 @@ function Caricamento() {
 
 export function App() {
   const nucleoId = useSessione((s) => s.nucleoCorrenteId);
+  const [invito, setInvito] = useState(() => (location.pathname.endsWith('/invito') ? leggiInvito(location.hash) : null));
+  if (invito) return <Invito invito={invito} onFatto={() => setInvito(null)} />;
   const esistente = nucleoId && leggiNuclei().some((n) => n.id === nucleoId) ? nucleoId : leggiNuclei()[0]?.id;
   if (!esistente) return <Benvenuto />;
   return (

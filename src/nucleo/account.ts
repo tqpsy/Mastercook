@@ -71,7 +71,7 @@ export async function chiaveDelNucleo(nucleo: NucleoLocale): Promise<CryptoKey> 
   return chiave;
 }
 
-interface VoceArchivio {
+export interface VoceArchivio {
   id: string;
   nome: string;
   membro_id: string;
@@ -80,7 +80,7 @@ interface VoceArchivio {
   storico: string;
   chiave: string;
 }
-interface Archivio {
+export interface Archivio {
   versione: 1;
   nuclei: VoceArchivio[];
 }
@@ -121,29 +121,50 @@ export async function collegaNucleo(ctx: ContestoNucleo): Promise<NucleoLocale> 
   return collegato;
 }
 
+/** Scarica da Drive i due documenti di un nucleo e lo registra su questo dispositivo. */
+export async function scaricaNucleo(voce: VoceArchivio): Promise<NucleoLocale> {
+  const nucleo: NucleoLocale = {
+    id: voce.id,
+    nome: voce.nome,
+    creato_il: new Date().toISOString(),
+    modalita: 'locale_drive',
+    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave },
+  };
+  const chiave = await chiaveDelNucleo(nucleo);
+  for (const tipo of ['dati', 'storico'] as const) {
+    const { doc, persistenza } = await apriDocumentoLocale(voce.id, tipo);
+    await applicaDocumentoCifrato(doc, chiave, await scaricaFile(voce[tipo]));
+    if (tipo === 'dati') nucleo.nome = (collezione(doc, 'meta').get('nucleo')?.get('nome') as string | undefined) ?? nucleo.nome;
+    await persistenza.destroy();
+    doc.destroy();
+  }
+  salvaNucleoLocale(nucleo);
+  return nucleo;
+}
+
+/** Annota (o aggiorna) un nucleo nell'archivio dell'account, per ritrovarlo sugli altri dispositivi. */
+export async function annotaNellArchivio(voce: VoceArchivio): Promise<void> {
+  const archivio = await leggiArchivio<Archivio>();
+  const nuclei = [...(archivio?.contenuto.nuclei ?? []).filter((n) => n.id !== voce.id), voce];
+  await scriviArchivio({ versione: 1, nuclei } satisfies Archivio, archivio?.id);
+}
+
 /** Su un nuovo dispositivo: scarica da Drive i nuclei dell'account. Restituisce l'id del primo. */
 export async function recuperaNuclei(): Promise<string | null> {
   const archivio = await leggiArchivio<Archivio>();
   let primo: string | null = null;
+  let errore: unknown;
   for (const voce of archivio?.contenuto.nuclei ?? []) {
-    const nucleo: NucleoLocale = {
-      id: voce.id,
-      nome: voce.nome,
-      creato_il: new Date().toISOString(),
-      modalita: 'locale_drive',
-      drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave },
-    };
-    const chiave = await chiaveDelNucleo(nucleo);
-    for (const tipo of ['dati', 'storico'] as const) {
-      const { doc, persistenza } = await apriDocumentoLocale(voce.id, tipo);
-      await applicaDocumentoCifrato(doc, chiave, await scaricaFile(voce[tipo]));
-      if (tipo === 'dati') nucleo.nome = (collezione(doc, 'meta').get('nucleo')?.get('nome') as string | undefined) ?? nucleo.nome;
-      await persistenza.destroy();
-      doc.destroy();
+    try {
+      await scaricaNucleo(voce);
+    } catch (e) {
+      // Un nucleo condiviso da altri può non essere più accessibile: si va avanti con gli altri.
+      errore ??= e;
+      continue;
     }
-    salvaNucleoLocale(nucleo);
     scriviMembroCorrente(voce.id, voce.membro_id);
     primo ??= voce.id;
   }
+  if (!primo && errore) throw errore;
   return primo;
 }
