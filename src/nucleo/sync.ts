@@ -13,6 +13,8 @@ import * as Y from 'yjs';
 import { create } from 'zustand';
 import { aggiornaFile, ErroreDrive, scaricaFile, versioneFile } from '../piattaforma/drive';
 import { decifraFile, cifraFile } from '../piattaforma/cifratura';
+import { VUOTO, type Deposito } from '../piattaforma/deposito';
+import { aggiornaMembriRelay, depositoRelay, fileRelay, relayConfigurato } from '../piattaforma/firebase';
 import { richiediToken, tokenValido } from '../piattaforma/google';
 import { accessoPerso, chiaveDelNucleo, emailAccount, proteggiChiaveSeInvitato, useAccount, VERSIONE_CHIAVE } from './account';
 import { useNucleo } from './contesto';
@@ -61,19 +63,43 @@ export interface Remoto {
   vettore?: Uint8Array;
 }
 
-export async function sincronizzaDocumento(doc: Y.Doc, fileId: string, chiave: CryptoKey, remoto: Remoto): Promise<void> {
-  const versione = await versioneFile(fileId);
+const DRIVE: Deposito = { versione: (id) => versioneFile(id), scarica: (id) => scaricaFile(id), aggiorna: (id, c) => aggiornaFile(id, c) };
+
+export async function sincronizzaDocumento(doc: Y.Doc, fileId: string, chiave: CryptoKey, remoto: Remoto, deposito: Deposito = DRIVE): Promise<void> {
+  const versione = await deposito.versione(fileId);
   if (versione !== remoto.versione || !remoto.vettore) {
-    const aggiornamento = await decifraFile(chiave, await scaricaFile(fileId));
-    Y.applyUpdate(doc, aggiornamento, 'drive');
+    if (versione === VUOTO) {
+      // Il file non c'è ancora (copia condivisa appena nata): si carica tutto.
+      remoto.vettore = Y.encodeStateVector(new Y.Doc());
+    } else {
+      const aggiornamento = await decifraFile(chiave, await deposito.scarica(fileId));
+      Y.applyUpdate(doc, aggiornamento, 'drive');
+      remoto.vettore = Y.encodeStateVectorFromUpdate(aggiornamento);
+    }
     remoto.versione = versione;
-    remoto.vettore = Y.encodeStateVectorFromUpdate(aggiornamento);
   }
   const locale = Y.encodeStateVector(doc);
   if (!uguali(locale, remoto.vettore)) {
-    remoto.versione = await aggiornaFile(fileId, await cifraFile(chiave, VERSIONE_CHIAVE, Y.encodeStateAsUpdate(doc)));
+    remoto.versione = await deposito.aggiorna(fileId, await cifraFile(chiave, VERSIONE_CHIAVE, Y.encodeStateAsUpdate(doc)));
     remoto.vettore = locale;
   }
+}
+
+/** Nuclei la cui scheda su Firebase è già stata allineata in questa sessione. */
+const schedeRelay = new Set<string>();
+
+/**
+ * Per chi ha creato il nucleo: tiene la copia condivisa su Firebase e l'elenco delle email che
+ * possono entrare (chi ha già un profilo collegato al suo account Google).
+ */
+async function assicuraRelay(nucleoId: string, dati: Y.Doc): Promise<void> {
+  if (schedeRelay.has(nucleoId)) return;
+  const email = [...dati.getMap<Y.Map<unknown>>('membri').values()]
+    .filter((m) => !m.get('eliminato_il'))
+    .map((m) => m.get('utente_id'))
+    .filter((e): e is string => typeof e === 'string' && e.includes('@'));
+  await aggiornaMembriRelay(nucleoId, { aggiungi: email });
+  schedeRelay.add(nucleoId);
 }
 
 /** Motore montato dentro il nucleo corrente: non disegna nulla. */
@@ -93,6 +119,7 @@ export function MotoreSync() {
     let ancora = false;
     let attesa: ReturnType<typeof setTimeout> | undefined;
     const remoti: Record<'dati' | 'storico', Remoto> = { dati: {}, storico: {} };
+    const remotiRelay: Record<'dati' | 'storico', Remoto> = { dati: {}, storico: {} };
     // Un invitato a cui è stato tolto l'accesso riceve «file non trovato»: due volte di fila per esserne certi.
     let nonTrovato = 0;
 
@@ -121,11 +148,26 @@ export function MotoreSync() {
           await richiediToken(emailAccount(), true);
         }
         const chiave = await chiaveDelNucleo(registrato);
-        await sincronizzaDocumento(dati, file.dati, chiave, remoti.dati);
-        await sincronizzaDocumento(storico, file.storico, chiave, remoti.storico);
+        const proprietario = file.proprietario !== false;
+        // Chi è entrato dalla copia condivisa usa solo quella; chi ha creato il nucleo tiene allineate entrambe.
+        if (!file.relay) {
+          await sincronizzaDocumento(dati, file.dati, chiave, remoti.dati);
+          await sincronizzaDocumento(storico, file.storico, chiave, remoti.storico);
+        }
+        const conRelay = relayConfigurato() && (file.relay || proprietario);
+        const viaRelay = async () => {
+          if (proprietario) await assicuraRelay(nucleo.id, dati);
+          await sincronizzaDocumento(dati, fileRelay(nucleo.id, 'dati'), chiave, remotiRelay.dati, depositoRelay);
+          await sincronizzaDocumento(storico, fileRelay(nucleo.id, 'storico'), chiave, remotiRelay.storico, depositoRelay);
+        };
+        // Per chi ha creato il nucleo Drive resta la copia principale: un problema di Firebase non lo ferma.
+        if (conRelay) await (file.relay ? viaRelay() : viaRelay().catch(() => undefined));
         nonTrovato = 0;
         // Le foto seguono i dati, ma un loro problema non ferma la sincronizzazione.
-        if (!soloDati) await sincronizzaFoto(nucleo.id).catch(() => undefined);
+        if (!soloDati) {
+          if (!file.relay) await sincronizzaFoto(nucleo.id).catch(() => undefined);
+          if (conRelay) await sincronizzaFoto(nucleo.id, 'relay').catch(() => undefined);
+        }
         await proteggiChiaveSeInvitato(nucleo.id).catch(() => undefined);
         useSync.setState({ stato: 'ok', ultima: new Date().toISOString(), messaggio: undefined });
       } catch (e) {

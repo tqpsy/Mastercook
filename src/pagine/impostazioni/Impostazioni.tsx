@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { relayConfigurato } from '../../piattaforma/firebase';
 import { emojiMembro } from '../../dominio/emojiMembro';
 import { AvvisiScadenza } from '../../componenti/AvvisiScadenza';
 import { Link } from 'react-router-dom';
@@ -145,6 +146,9 @@ export function Impostazioni() {
 
 const PERMESSI = [
   { emoji: '☁️', nome: 'Google Drive', testo: 'solo la cartella «Masterfood» e un’area nascosta dell’app, con i dati cifrati. Gli altri file di Drive restano invisibili all’app.' },
+  ...(relayConfigurato()
+    ? [{ emoji: '🔐', nome: 'Firebase', testo: 'una copia del nucleo cifrata sul telefono, per far entrare i familiari invitati senza altri passaggi. Nessuno può leggerla senza la chiave del nucleo.' }]
+    : []),
   { emoji: '✨', nome: 'Gemini', testo: 'solo se metti la tua chiave: le foto di frigo e dispensa vanno a Google per riconoscere i prodotti.' },
   { emoji: '📷', nome: 'Fotocamera', testo: 'solo mentre inquadri codici, scontrini o il frigo. Gli scontrini si leggono sul telefono.' },
   { emoji: '🔔', nome: 'Notifiche', testo: 'solo se attivi gli avvisi di scadenza, preparati sul telefono.' },
@@ -157,7 +161,7 @@ function PrivacyETermini() {
     <div className="sezione">
       <h2>Privacy e termini</h2>
       <p className="testo-tenue piccolo">
-        Masterfood non ha un server: niente pubblicità, niente tracciamento, nessuno vende i tuoi dati. Ecco cosa usa e perché.
+        Masterfood non ha un server che legga i tuoi dati: niente pubblicità, niente tracciamento, nessuno vende i tuoi dati. Ecco cosa usa e perché.
       </p>
       <ul className="punti">
         {PERMESSI.map((p) => (

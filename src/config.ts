@@ -1,7 +1,8 @@
 /**
  * Configurazione pubblica dell'app. Contiene solo valori fatti per stare nel client
  * (l'ID client OAuth non è un segreto): nessuna password, nessun client secret.
- * Le variabili VITE_GOOGLE_CLIENT_ID e VITE_GOOGLE_API_KEY (es. in .env.local) sostituiscono i valori qui sotto.
+ * Le variabili VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_API_KEY, VITE_FIREBASE_API_KEY e VITE_FIREBASE_PROJECT_ID
+ * (es. in .env.local) sostituiscono i valori qui sotto.
  */
 
 /** ID client OAuth "Applicazione web" del progetto Google Cloud di Masterfood. */
@@ -14,9 +15,18 @@ const ID_CLIENT_GOOGLE = '482205981080-7p0d3h797nbm2gtb9h3iediib5rcihs3.apps.goo
  */
 const CHIAVE_API_GOOGLE = 'AIzaSyDZ4P2SQ9bpPLdb2ojAI9VDKUQdQjYQgFg';
 
+/**
+ * Progetto Firebase (piano gratuito) per la copia condivisa e cifrata dei nuclei: identificativi
+ * pubblici, fatti per stare nel client. Vuoti = gli invitati confermano i file di Drive col selettore.
+ */
+const FIREBASE_API_KEY = '';
+const FIREBASE_PROJECT_ID = '';
+
 export const config = {
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || ID_CLIENT_GOOGLE,
   googleApiKey: import.meta.env.VITE_GOOGLE_API_KEY || CHIAVE_API_GOOGLE,
+  firebaseApiKey: import.meta.env.VITE_FIREBASE_API_KEY || FIREBASE_API_KEY,
+  firebaseProjectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || FIREBASE_PROJECT_ID,
 } as const;
 
 /** Numero del progetto Google Cloud: è la prima parte dell'ID client. */

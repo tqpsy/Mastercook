@@ -1,12 +1,14 @@
 /**
  * Foto di frigo, freezer e dispensa sul Drive di chi ha creato il nucleo, in un solo file cifrato
- * (nucleo-foto.mfd), così chi è invitato le vede anche lui. Per ogni zona vince la versione
+ * (nucleo-foto.mfd), e nella copia condivisa su Firebase, così chi è invitato le vede anche lui. Per ogni zona vince la versione
  * modificata per ultima. Senza token valido non fa nulla: ci pensa il ciclo successivo.
  */
 import { create } from 'zustand';
 import { MASSIMO_FOTO, leggiZona, salvaZona, type FotoSalvata, type Visto } from '../piattaforma/archivioFoto';
 import { cifraFile, decifraFile } from '../piattaforma/cifratura';
+import { VUOTO, type Deposito } from '../piattaforma/deposito';
 import { aggiornaFile, scaricaFile, versioneFile } from '../piattaforma/drive';
+import { depositoRelay, fileRelay } from '../piattaforma/firebase';
 import { tokenValido } from '../piattaforma/google';
 import { assicuraFileFoto, chiaveDelNucleo, VERSIONE_CHIAVE } from './account';
 import { leggiNuclei } from './registro';
@@ -40,17 +42,20 @@ const versioniNote = new Map<string, { versione: string; contenuto: FileFoto }>(
 let coda: Promise<unknown> = Promise.resolve();
 
 /** Unisce le foto locali con quelle su Drive. Restituisce le zone cambiate su questo dispositivo. */
-export function sincronizzaFoto(nucleoId: string): Promise<string[]> {
-  const giro = coda.then(() => giroFoto(nucleoId));
+export function sincronizzaFoto(nucleoId: string, dove: 'drive' | 'relay' = 'drive'): Promise<string[]> {
+  const giro = coda.then(() => giroFoto(nucleoId, dove));
   coda = giro.catch(() => undefined);
   return giro;
 }
 
-async function giroFoto(nucleoId: string): Promise<string[]> {
+const DRIVE: Deposito = { versione: (id) => versioneFile(id), scarica: (id) => scaricaFile(id), aggiorna: (id, c) => aggiornaFile(id, c) };
+
+async function giroFoto(nucleoId: string, dove: 'drive' | 'relay'): Promise<string[]> {
   const nucleo = leggiNuclei().find((n) => n.id === nucleoId);
   if (!nucleo?.drive || !tokenValido()) return [];
   const locali = Object.fromEntries(await Promise.all(ZONE_FOTO.map(async (z) => [z, await leggiZona(nucleoId, z)] as const)));
-  let fileId = nucleo.drive.foto;
+  const deposito = dove === 'relay' ? depositoRelay : DRIVE;
+  let fileId = dove === 'relay' ? fileRelay(nucleoId, 'foto') : nucleo.drive.foto;
   if (!fileId) {
     // Nessuna foto da condividere: il file si crea alla prima foto.
     if (!ZONE_FOTO.some((z) => locali[z]!.foto.length)) return [];
@@ -58,11 +63,12 @@ async function giroFoto(nucleoId: string): Promise<string[]> {
   }
   const chiave = await chiaveDelNucleo(leggiNuclei().find((n) => n.id === nucleoId)!);
 
-  const versione = await versioneFile(fileId);
+  const versione = await deposito.versione(fileId);
   let remoto = versioniNote.get(fileId);
   if (remoto?.versione !== versione) {
-    const testo = new TextDecoder().decode(await decifraFile(chiave, await scaricaFile(fileId)));
-    remoto = { versione, contenuto: JSON.parse(testo) as FileFoto };
+    const contenuto: FileFoto =
+      versione === VUOTO ? { versione: 1, zone: {} } : (JSON.parse(new TextDecoder().decode(await decifraFile(chiave, await deposito.scarica(fileId)))) as FileFoto);
+    remoto = { versione, contenuto };
     versioniNote.set(fileId, remoto);
   }
 
@@ -84,7 +90,7 @@ async function giroFoto(nucleoId: string): Promise<string[]> {
   }
   if (daCaricare) {
     const contenuto = await cifraFile(chiave, VERSIONE_CHIAVE, new TextEncoder().encode(JSON.stringify(nuovo)));
-    versioniNote.set(fileId, { versione: await aggiornaFile(fileId, contenuto), contenuto: nuovo });
+    versioniNote.set(fileId, { versione: await deposito.aggiorna(fileId, contenuto), contenuto: nuovo });
   }
   if (cambiate.length) useArrivoFoto.setState((s) => ({ giro: s.giro + 1 }));
   return cambiate;

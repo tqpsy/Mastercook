@@ -228,7 +228,7 @@ export function ModuloMembro({
           <input type="checkbox" checked={consenso} onChange={(e) => setConsenso(e.target.checked)} />
           <span>
             Acconsento al trattamento dei dati su allergie, gravidanza e allattamento, che sono dati relativi alla salute,
-            per filtrare ricette e prodotti e calcolare le porzioni. Restano cifrati nei dati del nucleo e non arrivano mai ai server di Masterfood.
+            per filtrare ricette e prodotti e calcolare le porzioni. Restano cifrati nei dati del nucleo e nessun server li può leggere.
           </span>
         </label>
       )}

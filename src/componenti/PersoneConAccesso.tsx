@@ -5,6 +5,7 @@ import { useNucleo } from '../nucleo/contesto';
 import { useCollezione } from '../nucleo/hooks';
 import { leggiNuclei } from '../nucleo/registro';
 import { elencaPermessi, togliPermesso, type Permesso } from '../piattaforma/drive';
+import { aggiornaMembriRelay, relayConfigurato } from '../piattaforma/firebase';
 import { richiediToken, tokenValido } from '../piattaforma/google';
 import { collezione, modificaEntita } from '../piattaforma/documento';
 import { messaggioErroreGoogle } from './Sincronizzazione';
@@ -42,6 +43,7 @@ export function PersoneConAccesso() {
     try {
       if (!tokenValido()) await richiediToken(emailAccount());
       await togliPermesso(cartella!, p.id);
+      if (relayConfigurato() && p.emailAddress) await aggiornaMembriRelay(ctx.nucleo.id, { togli: [p.emailAddress] });
       // Il profilo resta (porzioni, allergie), ma non è più legato al suo account Google.
       const entita = chi && collezione(ctx.dati, 'membri').get(chi.id);
       if (entita) modificaEntita(entita, { utente_id: undefined }, ctx.membroId);
