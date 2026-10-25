@@ -1,12 +1,8 @@
 /**
- * OCR degli scontrini.
- * - Predefinito: Tesseract.js con la lingua italiana, sul dispositivo, gratuito (i file del motore
- *   si scaricano la prima volta e poi restano in cache).
- * - Con la chiave Google Cloud Vision dell'utente: endpoint UE, più preciso. La chiamata parte dal
- *   telefono; la foto non passa dai server di Masterfood e non viene salvata.
+ * OCR degli scontrini con Tesseract.js e la lingua italiana, sul dispositivo e gratuito (i file
+ * del motore si scaricano la prima volta e poi restano in cache). La foto non lascia il telefono.
  */
 import { unisciParti } from '../dominio/scontrino';
-import { leggiChiave } from './chiaviApi';
 
 /** Scala di grigi e contrasto: aiuta Tesseract con la carta termica. */
 function preparaPerOcr(canvas: HTMLCanvasElement): HTMLCanvasElement {
@@ -43,38 +39,6 @@ async function conTesseract(immagini: HTMLCanvasElement[], progresso: (p: number
   }
 }
 
-async function conVision(immagini: HTMLCanvasElement[], chiave: string, progresso: (p: number) => void): Promise<string> {
-  const requests = immagini.map((c) => ({
-    image: { content: c.toDataURL('image/jpeg', 0.8).split(',')[1] },
-    features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
-    imageContext: { languageHints: ['it'] },
-  }));
-  progresso(0.3);
-  const r = await fetch(`https://eu-vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(chiave)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ requests }),
-  });
-  if (!r.ok) throw new Error(r.status === 403 || r.status === 400 ? 'chiave' : 'rete');
-  const dati = (await r.json()) as { responses: { fullTextAnnotation?: { text: string } }[] };
-  progresso(1);
-  return unisciParti(dati.responses.map((x) => x.fullTextAnnotation?.text ?? ''));
-}
-
-export type MotoreOcr = 'tesseract' | 'vision';
-
-export function motoreDisponibile(): MotoreOcr {
-  return leggiChiave('vision') ? 'vision' : 'tesseract';
-}
-
 export async function leggiTesto(immagini: HTMLCanvasElement[], progresso: (p: number) => void): Promise<string> {
-  const chiave = leggiChiave('vision');
-  if (chiave) {
-    try {
-      return await conVision(immagini, chiave, progresso);
-    } catch {
-      // Chiave non valida o rete assente: si ripiega sull'OCR del dispositivo.
-    }
-  }
   return conTesseract(immagini, progresso);
 }

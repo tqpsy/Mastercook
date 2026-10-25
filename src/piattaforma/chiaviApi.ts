@@ -4,9 +4,16 @@
  * In modalità locale la chiave resta solo su questo dispositivo; con l'account verrà salvata
  * cifrata nel file personale masterfood-utente.mfd sul suo Drive.
  */
-export type Fornitore = 'gemini' | 'vision';
+export type Fornitore = 'gemini';
 
 const chiave = (f: Fornitore) => `masterfood:chiave:${f}`;
+
+// Cloud Vision non si usa più (serviva una carta di credito): si toglie la chiave rimasta.
+try {
+  localStorage.removeItem('masterfood:chiave:vision');
+} catch {
+  // archivio non disponibile
+}
 
 export function leggiChiave(f: Fornitore): string {
   try {

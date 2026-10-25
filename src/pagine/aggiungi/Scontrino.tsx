@@ -12,7 +12,7 @@ import { useNucleo } from '../../nucleo/contesto';
 import { caricaScontrino, salvaAlias } from '../../nucleo/azioni';
 import { useCollezione } from '../../nucleo/hooks';
 import { creaRilevatore, immagineDaFile, useFotocamera } from '../../piattaforma/fotocamera';
-import { leggiTesto, motoreDisponibile } from '../../piattaforma/ocr';
+import { leggiTesto } from '../../piattaforma/ocr';
 import { leggiFormato } from '../../piattaforma/openFoodFacts';
 import { emojiIngrediente } from '../../rif/emoji';
 import { ingrediente } from '../../rif/ingredienti';
@@ -240,9 +240,7 @@ export function Scontrino() {
       <div className="saluto">
         <h1>Fotografa lo scontrino</h1>
         <p className="sottotitolo">
-          {motoreDisponibile() === 'vision'
-            ? 'Lettura con Google Vision e la tua chiave.'
-            : 'Lettura sul telefono, gratuita. La foto non viene salvata né inviata a Masterfood.'}
+          Lettura sul telefono, gratuita. La foto non viene salvata né inviata a Masterfood.
         </p>
       </div>
       {qrAperto ? (

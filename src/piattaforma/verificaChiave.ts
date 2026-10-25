@@ -1,23 +1,20 @@
 /**
- * Verifica di una chiave API con una chiamata minima: per Gemini l'elenco dei modelli
- * (gratuito, nessun token), per Vision un'immagine di 1 pixel (una sola unità, nella quota gratuita).
+ * Verifica della chiave Gemini con una chiamata minima: l'elenco dei modelli (gratuito, nessun token).
  * Traduce gli errori di Google in messaggi comprensibili.
  */
 import type { Fornitore } from './chiaviApi';
 
 export type EsitoVerifica = { ok: true; messaggio: string } | { ok: false; messaggio: string };
 
-const PIXEL_BIANCO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-
 interface ErroreGoogle {
   error?: { code?: number; status?: string; message?: string; details?: { reason?: string }[] };
 }
 
-export function interpretaErrore(fornitore: Fornitore, http: number, corpo: ErroreGoogle): string {
+export function interpretaErrore(_fornitore: Fornitore, http: number, corpo: ErroreGoogle): string {
   const e = corpo.error ?? {};
   const motivi = (e.details ?? []).map((d) => d.reason ?? '');
   const testo = `${e.message ?? ''} ${motivi.join(' ')}`;
-  const api = fornitore === 'gemini' ? 'Generative Language API' : 'Cloud Vision API';
+  const api = 'Generative Language API';
   if (motivi.includes('API_KEY_INVALID') || /api key not valid|API key not found/i.test(testo))
     return 'Chiave errata: controlla di averla copiata per intero, senza spazi.';
   if (motivi.includes('SERVICE_DISABLED') || /has not been used|is disabled|not been enabled/i.test(testo))
@@ -37,14 +34,7 @@ export async function verificaChiave(fornitore: Fornitore, chiave: string): Prom
   if (!navigator.onLine) return { ok: false, messaggio: 'Sei offline: collegati a internet e riprova.' };
   let r: Response;
   try {
-    r =
-      fornitore === 'gemini'
-        ? await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', { headers: { 'x-goog-api-key': chiave.trim() } })
-        : await fetch(`https://eu-vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(chiave.trim())}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requests: [{ image: { content: PIXEL_BIANCO }, features: [{ type: 'TEXT_DETECTION', maxResults: 1 }] }] }),
-          });
+    r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', { headers: { 'x-goog-api-key': chiave.trim() } });
   } catch {
     return { ok: false, messaggio: 'Non riesco a contattare Google: controlla la connessione e riprova.' };
   }
