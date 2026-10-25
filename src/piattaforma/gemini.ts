@@ -4,7 +4,8 @@
  * agli ingredienti sul dispositivo e confermata dall'utente: la foto non rimuove mai nulla.
  */
 import { leggiChiave } from './chiaviApi';
-import { eQuotaGiornaliera, quotaEsaurita, registraRichiesta, segnaEsaurita } from './quotaGemini';
+import { create } from 'zustand';
+import { attesaDaErrore, eQuotaGiornaliera, impostaLimite, limiteDaErrore, MODELLI_GEMINI, modelloEsaurito, quotaEsaurita, registraRichiesta, segnaEsaurita } from './quotaGemini';
 
 export interface ProdottoVisto {
   nome: string;
@@ -13,7 +14,6 @@ export interface ProdottoVisto {
   posizione?: string;
 }
 
-const MODELLI = ['gemini-2.5-flash', 'gemini-flash-latest'];
 const ISTRUZIONI =
   'Elenca gli alimenti visibili in questa foto di un frigorifero, di un freezer o di una dispensa (può essere un solo ripiano, un cassetto o la portiera). ' +
   'Usa nomi generici in italiano (es. "latte", "uova", "zucchine", non le marche) e una stima della quantità visibile. ' +
@@ -26,33 +26,87 @@ const ISTRUZIONI_FRIGO =
 
 type Parte = { text: string } | { inline_data: { mime_type: string; data: string } };
 
-/** Una richiesta a Gemini con risposta JSON; prova il modello successivo se uno non esiste più. */
-async function chiediJson(parti: Parte[]): Promise<unknown> {
+/** Fino a quando si aspetta perché Gemini ha chiesto una pausa (limite al minuto), per mostrarlo. */
+export const usePausaGemini = create<{ fino: number | null }>(() => ({ fino: null }));
+
+/** Quante volte si riprova dopo un limite al minuto o un modello sovraccarico, prima di arrendersi. */
+const TENTATIVI = 3;
+
+async function pausa(ms: number): Promise<void> {
+  usePausaGemini.setState({ fino: Date.now() + ms });
+  await new Promise((ok) => setTimeout(ok, ms));
+  usePausaGemini.setState({ fino: null });
+}
+
+// Una richiesta alla volta: più foto insieme finirebbero subito nel limite al minuto.
+let coda: Promise<unknown> = Promise.resolve();
+function inCoda<T>(lavoro: () => Promise<T>): Promise<T> {
+  const p = coda.then(lavoro, lavoro);
+  coda = p.catch(() => undefined);
+  return p;
+}
+
+/**
+ * Una richiesta a Gemini con risposta JSON. Limite al minuto: aspetta quanto chiede Google e riprova.
+ * Quota del giorno finita o modello sparito: passa al modello successivo, che ha una quota sua.
+ */
+const chiediJson = (parti: Parte[]) => inCoda(() => chiediJsonOra(parti));
+
+async function chiediJsonOra(parti: Parte[]): Promise<unknown> {
   const chiave = leggiChiave('gemini');
   if (!chiave) throw new Error('chiave');
-  // Google ha già detto che per oggi la prova è finita: inutile riprovare fino all'azzeramento.
+  // Google ha già detto che per oggi la prova è finita con tutti i modelli: inutile riprovare fino all'azzeramento.
   if (quotaEsaurita()) throw new Error('quota_giorno');
-  for (const modello of MODELLI) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modello}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': chiave },
-      body: JSON.stringify({
-        contents: [{ parts: parti }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
-      }),
-    });
-    if (r.status === 404) continue;
-    if (r.status === 429) {
-      if (!eQuotaGiornaliera(await r.text().catch(() => ''))) throw new Error('quota');
-      segnaEsaurita();
-      throw new Error('quota_giorno');
+  let finitaOggi = false;
+  let alMinuto = false;
+  for (const modello of MODELLI_GEMINI) {
+    if (modelloEsaurito(modello)) {
+      finitaOggi = true;
+      continue;
     }
-    if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'chiave' : 'rete');
-    registraRichiesta();
-    const risposta = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    return JSON.parse(risposta.candidates?.[0]?.content?.parts?.[0]?.text ?? 'null') as unknown;
+    for (let tentativo = 1; ; tentativo++) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modello}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': chiave },
+        body: JSON.stringify({
+          contents: [{ parts: parti }],
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+        }),
+      });
+      if (r.status === 404) {
+        segnaEsaurita(modello);
+        break;
+      }
+      if (r.status === 429) {
+        const corpo = await r.text().catch(() => '');
+        if (eQuotaGiornaliera(corpo)) {
+          const limite = modello === MODELLI_GEMINI[0] ? limiteDaErrore(corpo) : null;
+          if (limite) impostaLimite(limite);
+          segnaEsaurita(modello);
+          finitaOggi = true;
+          break;
+        }
+        // Limite al minuto (richieste o token): basta aspettare un po'.
+        if (tentativo >= TENTATIVI) {
+          alMinuto = true;
+          break;
+        }
+        await pausa(attesaDaErrore(corpo));
+        continue;
+      }
+      // Modello sovraccarico: capita spesso col piano gratuito e non consuma la quota.
+      if (r.status >= 500) {
+        if (tentativo >= TENTATIVI) break;
+        await pausa(2000 * tentativo);
+        continue;
+      }
+      if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'chiave' : 'rete');
+      registraRichiesta(modello);
+      const risposta = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+      return JSON.parse(risposta.candidates?.[0]?.content?.parts?.[0]?.text ?? 'null') as unknown;
+    }
   }
-  throw new Error('modello');
+  throw new Error(alMinuto ? 'quota' : finitaOggi ? 'quota_giorno' : 'modello');
 }
 
 export async function riconosciProdotti(canvas: HTMLCanvasElement, frigo = false): Promise<ProdottoVisto[]> {

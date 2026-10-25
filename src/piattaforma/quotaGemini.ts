@@ -3,8 +3,15 @@
  * le contiamo su questo dispositivo e le azzeriamo quando le azzera Google (mezzanotte del Pacifico,
  * le 9 in Italia). Il limite si legge su AI Studio e si può correggere; un errore di quota giornaliera
  * da Google vale più del conteggio.
+ *
+ * Google conta le richieste modello per modello: finita la quota del modello principale si passa
+ * ai successivi (più leggeri, con limiti gratuiti propri). La prova è finita solo quando lo sono tutti.
  */
 import { create } from 'zustand';
+
+/** In ordine di preferenza: prima il più preciso, poi quelli di riserva. Tutti nel piano gratuito. */
+export const MODELLI_GEMINI = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'];
+const PRINCIPALE = MODELLI_GEMINI[0]!;
 
 /** Richieste gratuite al giorno di gemini-2.5-flash al momento dello sviluppo; cambia nel tempo. */
 export const LIMITE_PREDEFINITO = 20;
@@ -15,8 +22,12 @@ const FUSO_GOOGLE = 'America/Los_Angeles';
 interface Conteggio {
   /** Giorno di Google (AAAA-MM-GG nel fuso del Pacifico). */
   giorno: string;
+  /** Richieste riuscite con il modello principale. */
   usate: number;
+  /** Vero quando tutti i modelli hanno finito la quota del giorno. */
   esaurita: boolean;
+  /** Modelli che oggi non si possono più usare (quota finita o non più disponibili). */
+  esauriti?: string[];
 }
 
 export function giornoGoogle(adesso: Date): string {
@@ -57,7 +68,9 @@ interface StatoQuota extends Conteggio {
 function attuale(adesso = new Date()): StatoQuota {
   const salvato = leggi<Conteggio | null>(CHIAVE, null);
   const giorno = giornoGoogle(adesso);
-  const conteggio = salvato?.giorno === giorno ? salvato : { giorno, usate: 0, esaurita: false };
+  let conteggio: Conteggio = salvato?.giorno === giorno ? salvato : { giorno, usate: 0, esaurita: false };
+  // Le versioni precedenti segnavano finita la prova al primo modello esaurito: lo era solo il principale.
+  if (conteggio.esaurita && !conteggio.esauriti) conteggio = { ...conteggio, esaurita: false, esauriti: [PRINCIPALE] };
   return { ...conteggio, limite: leggi(CHIAVE_LIMITE, LIMITE_PREDEFINITO) };
 }
 
@@ -73,9 +86,28 @@ function aggiorna(modifica: (c: Conteggio) => Conteggio): void {
 /** Rilegge il conteggio: a cavallo della mezzanotte di Google torna a zero. */
 export const ricaricaQuota = () => useQuotaGemini.setState(attuale());
 
-export const registraRichiesta = () => aggiorna((c) => ({ ...c, usate: c.usate + 1 }));
+export const registraRichiesta = (modello = PRINCIPALE) => {
+  if (modello === PRINCIPALE) aggiorna((c) => ({ ...c, usate: c.usate + 1 }));
+};
 
-export const segnaEsaurita = () => aggiorna((c) => ({ ...c, esaurita: true, usate: Math.max(c.usate, attuale().limite) }));
+/** Il modello non si può più usare fino all'azzeramento; finiti tutti, la prova del giorno è finita. */
+export function segnaEsaurita(modello = PRINCIPALE): void {
+  const limite = attuale().limite;
+  aggiorna((c) => {
+    const esauriti = [...new Set([...(c.esauriti ?? []), modello])];
+    return {
+      ...c,
+      esauriti,
+      esaurita: MODELLI_GEMINI.every((m) => esauriti.includes(m)),
+      usate: modello === PRINCIPALE ? Math.max(c.usate, limite) : c.usate,
+    };
+  });
+}
+
+export const modelloEsaurito = (modello: string) => (attuale().esauriti ?? []).includes(modello);
+
+/** Vero se oggi si sta usando un modello di riserva perché il principale ha finito la quota. */
+export const inRiserva = (stato: Conteggio) => !stato.esaurita && (stato.esauriti ?? []).includes(PRINCIPALE);
 
 export function impostaLimite(limite: number): void {
   const valore = Math.max(1, Math.min(10_000, Math.round(limite) || LIMITE_PREDEFINITO));
@@ -83,7 +115,7 @@ export function impostaLimite(limite: number): void {
   useQuotaGemini.setState({ ...attuale(), limite: valore });
 }
 
-/** Vero se Google ha già detto che per oggi la prova gratuita è finita. */
+/** Vero se Google ha già detto che per oggi la prova gratuita è finita con tutti i modelli. */
 export const quotaEsaurita = () => attuale().esaurita;
 
 /** «alle 9:00» nell'ora del telefono. */
@@ -97,4 +129,16 @@ export function oraAzzeramento(adesso = new Date()): string {
  */
 export function eQuotaGiornaliera(corpo: string): boolean {
   return /PerDay/i.test(corpo);
+}
+
+/** Il limite giornaliero scritto da Google nell'errore (quotaValue), se c'è. */
+export function limiteDaErrore(corpo: string): number | null {
+  const n = Number(/"quotaValue"\s*:\s*"?(\d+)/.exec(corpo)?.[1]);
+  return n > 0 ? n : null;
+}
+
+/** Quanti millisecondi Google chiede di aspettare dopo un limite al minuto (RetryInfo), tra 2 e 60 secondi. */
+export function attesaDaErrore(corpo: string): number {
+  const s = Number(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(corpo)?.[1]);
+  return Math.round(Math.min(60, Math.max(2, Number.isFinite(s) && s > 0 ? s : 20)) * 1000);
 }
