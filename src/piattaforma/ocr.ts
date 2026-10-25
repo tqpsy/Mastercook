@@ -1,5 +1,5 @@
 /**
- * OCR degli scontrini con Tesseract.js e la lingua italiana, sul dispositivo e gratuito (i file
+ * OCR di scontrini e fogli della dieta con Tesseract.js e la lingua italiana, sul dispositivo e gratuito (i file
  * del motore si scaricano la prima volta e poi restano in cache). La foto non lascia il telefono.
  */
 import { unisciParti } from '../dominio/scontrino';
@@ -18,7 +18,7 @@ function preparaPerOcr(canvas: HTMLCanvasElement): HTMLCanvasElement {
   return canvas;
 }
 
-async function conTesseract(immagini: HTMLCanvasElement[], progresso: (p: number) => void): Promise<string> {
+async function conTesseract(immagini: HTMLCanvasElement[], progresso: (p: number) => void): Promise<string[]> {
   const { createWorker } = await import('tesseract.js');
   let parte = 0;
   const worker = await createWorker('ita', 1, {
@@ -33,12 +33,17 @@ async function conTesseract(immagini: HTMLCanvasElement[], progresso: (p: number
       testi.push(data.text);
       parte++;
     }
-    return unisciParti(testi);
+    return testi;
   } finally {
     await worker.terminate();
   }
 }
 
 export async function leggiTesto(immagini: HTMLCanvasElement[], progresso: (p: number) => void): Promise<string> {
-  return conTesseract(immagini, progresso);
+  return unisciParti(await conTesseract(immagini, progresso));
+}
+
+/** Pagine di un documento (la dieta del dietista): una dopo l'altra, senza cercare righe ripetute. */
+export async function leggiPagine(immagini: HTMLCanvasElement[], progresso: (p: number) => void): Promise<string> {
+  return (await conTesseract(immagini, progresso)).join('\n');
 }

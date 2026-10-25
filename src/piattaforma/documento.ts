@@ -22,6 +22,7 @@ export const COLLEZIONI_DATI = [
   'ricette_meta',
   'categorie_ricette',
   'piani',
+  'diete',
   'eventi_ospiti',
   'liste',
   'acquisti_in_corso',

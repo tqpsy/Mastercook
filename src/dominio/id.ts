@@ -58,7 +58,8 @@ export function settimanaIso(data: string): string {
   return `${anno}-W${String(numero).padStart(2, '0')}`;
 }
 
-export type TipoPasto = 'colazione' | 'pranzo' | 'merenda' | 'cena';
+/** Lo spuntino è quello di metà mattina, la merenda quella del pomeriggio. */
+export type TipoPasto = 'colazione' | 'spuntino' | 'pranzo' | 'merenda' | 'cena';
 
 export const idPiano = (data: string) => `piano:${settimanaIso(data)}`;
 export const idPasto = (data: string, tipo: TipoPasto) => `${data}:${tipo}`;
@@ -68,6 +69,8 @@ export const idArticoloLista = (ingredienteId: string) => `art:${ingredienteId}`
 export const idArticoloListaTesto = (testo: string) => `art:txt:${slug(testo)}`;
 export const idAggregatoMese = (anno: number, mese: number) => `agg:${anno}-${String(mese).padStart(2, '0')}`;
 export const idRicettaMeta = (ricettaId: string) => `meta:${ricettaId}`;
+/** Una dieta per membro: ricaricarla sostituisce la precedente. */
+export const idDieta = (membroId: string) => `dieta:${membroId}`;
 export const idFoto = (tipo: 'frigo' | 'dispensa') => `foto:${tipo}`;
 export const idIngrediente = (nome: string) => `ing:${slug(nome)}`;
 export const idRicettaSistema = (nome: string) => `sys:${slug(nome)}`;

@@ -18,6 +18,8 @@ import { ScansionaCodice } from './pagine/aggiungi/ScansionaCodice';
 import { Scontrino } from './pagine/aggiungi/Scontrino';
 import { Impostazioni } from './pagine/impostazioni/Impostazioni';
 import { Membro } from './pagine/impostazioni/Membro';
+import { CaricaDieta } from './pagine/menu/CaricaDieta';
+import { Menu } from './pagine/menu/Menu';
 import { DettaglioRicetta } from './pagine/ricette/DettaglioRicetta';
 import { EditorRicetta } from './pagine/ricette/EditorRicetta';
 import { Ricette } from './pagine/ricette/Ricette';
@@ -36,6 +38,8 @@ const router = createBrowserRouter(
         { path: 'aggiungi/scontrino', element: <Scontrino /> },
         { path: 'aggiungi/foto', element: <FotoDispensa /> },
         { path: 'lista', element: <Lista /> },
+        { path: 'menu', element: <Menu /> },
+        { path: 'menu/dieta', element: <CaricaDieta /> },
         { path: 'ricette', element: <Ricette /> },
         { path: 'ricette/nuova', element: <EditorRicetta /> },
         { path: 'ricette/:id', element: <DettaglioRicetta /> },

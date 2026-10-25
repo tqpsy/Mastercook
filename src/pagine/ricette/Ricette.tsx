@@ -86,9 +86,14 @@ export function Ricette() {
           <h1>Ricette</h1>
           <p className="sottotitolo">Cosa cucinare con quello che hai.</p>
         </div>
-        <Link className="bottone piccolo secondario" to="/ricette/nuova">
-          + Nuova
-        </Link>
+        <div className="azioni" style={{ flexWrap: 'nowrap' }}>
+          <Link className="bottone piccolo secondario" to="/menu">
+            Menù
+          </Link>
+          <Link className="bottone piccolo secondario" to="/ricette/nuova">
+            + Nuova
+          </Link>
+        </div>
       </div>
 
       <SceltaPresenti />

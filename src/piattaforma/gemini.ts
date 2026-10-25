@@ -23,25 +23,54 @@ const ISTRUZIONI_FRIGO =
   'Per ognuno indica dove si trova: "ripiano alto", "ripiano centrale", "ripiano basso" (quello più in basso, sopra i cassetti), "cassetto" o "portiera"; ' +
   'se non si capisce usa "non so". Rispondi solo con JSON: [{"nome": string, "quantita": string, "posizione": string}]. Se non vedi alimenti rispondi [].';
 
-export async function riconosciProdotti(canvas: HTMLCanvasElement, frigo = false): Promise<ProdottoVisto[]> {
+type Parte = { text: string } | { inline_data: { mime_type: string; data: string } };
+
+/** Una richiesta a Gemini con risposta JSON; prova il modello successivo se uno non esiste più. */
+async function chiediJson(parti: Parte[]): Promise<unknown> {
   const chiave = leggiChiave('gemini');
   if (!chiave) throw new Error('chiave');
-  const data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
   for (const modello of MODELLI) {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modello}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': chiave },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: frigo ? ISTRUZIONI_FRIGO : ISTRUZIONI }, { inline_data: { mime_type: 'image/jpeg', data } }] }],
+        contents: [{ parts: parti }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
       }),
     });
     if (r.status === 404) continue;
     if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'chiave' : r.status === 429 ? 'quota' : 'rete');
     const risposta = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    const testo = risposta.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
-    const elenco = JSON.parse(testo) as unknown;
-    return Array.isArray(elenco) ? elenco.filter((x): x is ProdottoVisto => typeof x?.nome === 'string') : [];
+    return JSON.parse(risposta.candidates?.[0]?.content?.parts?.[0]?.text ?? 'null') as unknown;
   }
   throw new Error('modello');
+}
+
+export async function riconosciProdotti(canvas: HTMLCanvasElement, frigo = false): Promise<ProdottoVisto[]> {
+  const data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]!;
+  const elenco = await chiediJson([{ text: frigo ? ISTRUZIONI_FRIGO : ISTRUZIONI }, { inline_data: { mime_type: 'image/jpeg', data } }]);
+  return Array.isArray(elenco) ? elenco.filter((x): x is ProdottoVisto => typeof x?.nome === 'string') : [];
+}
+
+const ISTRUZIONI_DIETA =
+  'Questo è un piano alimentare consegnato da un dietista o nutrizionista (foto delle pagine, PDF o testo). ' +
+  'Trascrivilo fedelmente in JSON, senza aggiungere, togliere o correggere nulla e senza dare consigli. ' +
+  'Schema: {"titolo": string|null, "dietista": string|null, "note": string[], "giorni": [{"giorno": number, "pasti": [{"tipo": "colazione"|"spuntino"|"pranzo"|"merenda"|"cena", ' +
+  '"voci": [{"alimento": string, "quantita_g": number|null, "quantita": string|null, "alternative": string[]}]}]}]}. ' +
+  'giorno: 1 = lunedì … 7 = domenica. Se il piano non distingue i giorni, ripeti lo stesso schema per tutti e 7 i giorni; ' +
+  'se propone più schemi a scelta per lo stesso pasto, usa il primo per lunedì, il secondo per martedì e così via. ' +
+  '"spuntino" è quello di metà mattina, "merenda" quello del pomeriggio. ' +
+  'alimento: il nome come scritto, in italiano (es. "pasta integrale", "verdura cotta", "merluzzo"). quantita_g: grammi o millilitri se indicati, altrimenti null; ' +
+  'quantita: le quantità non in grammi (es. "1 vasetto", "2 fette", "a volontà"). alternative: gli alimenti indicati come alternativa ("pasta o riso" → alimento "pasta", alternative ["riso"]). ' +
+  'note: frequenze settimanali e indicazioni generali (es. "pesce almeno 3 volte a settimana"). Se non è un piano alimentare rispondi {"giorni": []}.';
+
+export type DocumentoDieta = { tipo: 'testo'; testo: string } | { tipo: 'immagini'; immagini: HTMLCanvasElement[] } | { tipo: 'pdf'; base64: string };
+
+/** Legge la dieta con la chiave Gemini dell'utente. La risposta va sempre controllata con dietaDaGemini. */
+export async function leggiDietaConGemini(documento: DocumentoDieta): Promise<unknown> {
+  const parti: Parte[] = [{ text: ISTRUZIONI_DIETA }];
+  if (documento.tipo === 'testo') parti.push({ text: documento.testo.slice(0, 30_000) });
+  else if (documento.tipo === 'pdf') parti.push({ inline_data: { mime_type: 'application/pdf', data: documento.base64 } });
+  else for (const c of documento.immagini) parti.push({ inline_data: { mime_type: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1]! } });
+  return chiediJson(parti);
 }
