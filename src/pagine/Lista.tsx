@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { IconaSpunta } from '../componenti/Icone';
 import { Foglio, SelettoreIngrediente, Vuoto, mostraAvviso } from '../componenti/ui';
 import { formattaQuantita } from '../dominio/formato';
@@ -80,6 +81,12 @@ export function Lista() {
           Quando spunti un ingrediente, finisce in casa.
         </p>
       </div>
+
+      {vista.daComprare.length > 0 && (
+        <Link to="/spesa" className="bottone">
+          🛒 Sono al supermercato
+        </Link>
+      )}
 
       <SelettoreIngrediente
         segnaposto="Aggiungi: pane, uova, detersivo…"

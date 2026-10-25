@@ -10,6 +10,7 @@ import { Invito } from './pagine/Invito';
 import { Casa } from './pagine/Casa';
 import { Lista } from './pagine/Lista';
 import { Oggi } from './pagine/Oggi';
+import { Spesa } from './pagine/Spesa';
 import { Aggiungi } from './pagine/aggiungi/Aggiungi';
 import { AggiungiAMano } from './pagine/aggiungi/AggiungiAMano';
 import { FotoDispensa } from './pagine/aggiungi/FotoDispensa';
@@ -44,6 +45,8 @@ const router = createBrowserRouter(
         { path: '*', element: <Navigate to="/" replace /> },
       ],
     },
+    // Fuori dalla struttura: tutto schermo, senza intestazione né barra delle schede.
+    { path: 'spesa', element: <Spesa /> },
   ],
   { basename: import.meta.env.BASE_URL.replace(/\/$/, '') || '/' },
 );
