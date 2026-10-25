@@ -165,6 +165,8 @@ export function Impostazioni() {
         </div>
       </div>
 
+      <PrivacyETermini />
+
       <div className="sezione">
         <h2>Informazioni</h2>
         <p className="testo-tenue piccolo">
@@ -178,6 +180,49 @@ export function Impostazioni() {
         <BottoneAggiorna />
       </div>
     </section>
+  );
+}
+
+const PERMESSI = [
+  { emoji: '☁️', nome: 'Google Drive', testo: 'solo la cartella «Masterfood» e un’area nascosta dell’app, con i dati cifrati. Gli altri file di Drive restano invisibili all’app.' },
+  { emoji: '✨', nome: 'Gemini', testo: 'solo se metti la tua chiave: le foto di frigo e dispensa vanno a Google per riconoscere i prodotti.' },
+  { emoji: '📷', nome: 'Fotocamera', testo: 'solo mentre inquadri codici, scontrini o il frigo. Gli scontrini si leggono sul telefono.' },
+  { emoji: '🔔', nome: 'Notifiche', testo: 'solo se attivi gli avvisi di scadenza, preparati sul telefono.' },
+  { emoji: '📦', nome: 'Open Food Facts', testo: 'riceve solo il numero del codice a barre che scansioni.' },
+];
+
+function PrivacyETermini() {
+  const pagina = `${import.meta.env.BASE_URL}privacy.html`;
+  return (
+    <div className="sezione">
+      <h2>Privacy e termini</h2>
+      <p className="testo-tenue piccolo">
+        Masterfood non ha un server: niente pubblicità, niente tracciamento, nessuno vende i tuoi dati. Ecco cosa usa e perché.
+      </p>
+      <ul className="punti">
+        {PERMESSI.map((p) => (
+          <li key={p.nome}>
+            <span className="emoji" aria-hidden="true">
+              {p.emoji}
+            </span>
+            <span>
+              <strong>{p.nome}</strong>: {p.testo}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="azioni">
+        <a className="bottone secondario" href={pagina} target="_blank" rel="noreferrer">
+          Informativa sulla privacy
+        </a>
+        <a className="bottone secondario" href={`${pagina}#termini`} target="_blank" rel="noreferrer">
+          Termini d’uso
+        </a>
+      </div>
+      <a className="piccolo" href="https://myaccount.google.com/connections" target="_blank" rel="noreferrer">
+        Togli l’accesso di Masterfood al tuo Account Google
+      </a>
+    </div>
   );
 }
 

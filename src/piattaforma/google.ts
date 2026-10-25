@@ -3,11 +3,13 @@
  * per identità, file creati dall'app su Drive e area nascosta dell'app. Il token dura circa
  * un'ora e resta solo in memoria: nessun refresh token, nessun server, nessun segreto.
  */
-import { config, SCOPE_GOOGLE } from '../config';
+import { config, SCOPE_DRIVE, SCOPE_GOOGLE } from '../config';
 
 interface RispostaToken {
   access_token?: string;
   expires_in?: number;
+  /** Ambiti concessi davvero: nella schermata di Google le caselle si possono lasciare vuote. */
+  scope?: string;
   error?: string;
 }
 interface ClientToken {
@@ -52,6 +54,28 @@ export function caricaGis(): Promise<Gis> {
 }
 
 let token: { valore: string; scade: number } | null = null;
+const CHIAVE_CONSENSO = 'masterfood:google-consenso';
+
+/** Il permesso per Drive è già stato dato almeno una volta su questo dispositivo. */
+export function consensoGiaDato(): boolean {
+  try {
+    return !!localStorage.getItem(CHIAVE_CONSENSO);
+  } catch {
+    return false;
+  }
+}
+
+function segnaConsenso(dato: boolean) {
+  try {
+    if (dato) localStorage.setItem(CHIAVE_CONSENSO, 'si');
+    else localStorage.removeItem(CHIAVE_CONSENSO);
+  } catch {
+    // archivio non disponibile: la spiegazione ricomparirà
+  }
+}
+
+/** Dopo un consenso con caselle non spuntate, la volta dopo Google deve rimostrarle. */
+let richiediConsenso = false;
 
 export function tokenValido(): string | null {
   return token && token.scade > Date.now() + 60_000 ? token.valore : null;
@@ -69,12 +93,22 @@ export async function richiediToken(email?: string, silenzioso = false): Promise
       scope: SCOPE_GOOGLE,
       callback: (r) => {
         if (!r.access_token) return ko(new Error(r.error ?? 'negato'));
+        const concessi = (r.scope ?? '').split(' ');
+        if (!SCOPE_DRIVE.every((s) => concessi.includes(s))) {
+          richiediConsenso = true;
+          segnaConsenso(false);
+          window.google?.accounts.oauth2.revoke(r.access_token);
+          return ko(new Error('permessi_mancanti'));
+        }
+        richiediConsenso = false;
+        segnaConsenso(true);
         token = { valore: r.access_token, scade: Date.now() + (r.expires_in ?? 3600) * 1000 };
         ok(r.access_token);
       },
       error_callback: (e) => ko(new Error(e.type)),
     });
-    client.requestAccessToken({ prompt: silenzioso ? '' : email ? undefined : 'select_account', login_hint: email });
+    const prompt = richiediConsenso ? 'consent' : silenzioso ? '' : email ? undefined : 'select_account';
+    client.requestAccessToken({ prompt, login_hint: email });
   });
 }
 

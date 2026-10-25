@@ -26,11 +26,8 @@ export const numeroProgettoGoogle = () => config.googleClientId.split('-')[0] ??
  * Scope Google, tutti non sensibili: identità, file creati dall'app (drive.file)
  * e area nascosta dell'app sul Drive (drive.appdata) per chiave ed elenco dei nuclei.
  */
-export const SCOPE_GOOGLE = [
-  'openid',
-  'email',
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive.appdata',
-].join(' ');
+export const SCOPE_DRIVE = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.appdata'];
+
+export const SCOPE_GOOGLE = ['openid', 'email', ...SCOPE_DRIVE].join(' ');
 
 export const googleConfigurato = () => !!config.googleClientId;

@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Masterfood: privacy e termini</title>
+    <meta name="description" content="Informativa sulla privacy e termini d'uso di Masterfood" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --sfondo: #faf6ee;
+        --superficie: #fffdf8;
+        --testo: #2b2a22;
+        --tenue: #6b675a;
+        --linea: #e8e1d2;
+        --oliva: #556b2f;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --sfondo: #171812;
+          --superficie: #212219;
+          --testo: #ecebe2;
+          --tenue: #a9a796;
+          --linea: #34352a;
+          --oliva: #a9c27a;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--sfondo);
+        color: var(--testo);
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 24px 16px 64px;
+      }
+      h1 {
+        font-family: Georgia, serif;
+        font-size: 1.9rem;
+        line-height: 1.2;
+        margin: 8px 0;
+      }
+      h2 {
+        font-family: Georgia, serif;
+        font-size: 1.3rem;
+        margin: 32px 0 8px;
+        padding-top: 16px;
+        border-top: 1px solid var(--linea);
+      }
+      h3 {
+        font-size: 1rem;
+        margin: 20px 0 4px;
+      }
+      a {
+        color: var(--oliva);
+      }
+      .tenue {
+        color: var(--tenue);
+        font-size: 0.9rem;
+      }
+      .indice {
+        background: var(--superficie);
+        border: 1px solid var(--linea);
+        border-radius: 14px;
+        padding: 12px 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 8px 6px;
+        border-bottom: 1px solid var(--linea);
+      }
+      .tabella {
+        overflow-x: auto;
+      }
+      .torna {
+        display: inline-block;
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="torna" href="./">← Torna a Masterfood</a>
+      <h1>Privacy e termini di Masterfood</h1>
+      <p class="tenue">Aggiornati il 25 ottobre 2026.</p>
+
+      <p>
+        Masterfood è un’app gratuita per gestire dispensa, spesa e ricette della famiglia. In breve: <strong>non c’è un server di Masterfood</strong>.
+        I dati restano sul tuo telefono e, se lo scegli, in una cartella cifrata sul Google Drive di chi ha creato il nucleo. Nessuna pubblicità,
+        nessun tracciamento, nessuna vendita di dati.
+      </p>
+
+      <nav class="indice">
+        <strong>In questa pagina</strong>
+        <ol>
+          <li><a href="#dati">Quali dati e dove stanno</a></li>
+          <li><a href="#google">Accesso con Google e permessi di Drive</a></li>
+          <li><a href="#servizi">Servizi esterni usati dall’app</a></li>
+          <li><a href="#permessi">Permessi del telefono</a></li>
+          <li><a href="#diritti">I tuoi diritti e come cancellare tutto</a></li>
+          <li><a href="#termini">Termini d’uso</a></li>
+          <li><a href="#contatti">Titolare e contatti</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="dati">1. Quali dati e dove stanno</h2>
+      <p>Masterfood conserva solo quello che inserisci tu:</p>
+      <ul>
+        <li>nucleo e membri: nome, data di nascita e sesso (facoltativi), porzione, allergie, intolleranze, restrizioni e preferenze;</li>
+        <li>per le donne in età fertile, se indicato, gravidanza o allattamento, solo per calcolare i fabbisogni;</li>
+        <li>casa (frigo, freezer, dispensa), lista della spesa, ricette personali, piatti cucinati;</li>
+        <li>foto di frigo, freezer e dispensa e i prodotti riconosciuti.</li>
+      </ul>
+      <p>
+        Allergie, intolleranze, gravidanza e allattamento sono dati relativi alla salute. Servono solo a escludere le ricette non sicure e a
+        calcolare le porzioni, e non lasciano mai i posti descritti qui sotto.
+      </p>
+      <h3>Sul telefono</h3>
+      <p>Tutto è salvato nella memoria del browser (IndexedDB) del dispositivo. L’app funziona anche senza account e senza rete.</p>
+      <h3>Su Google Drive (se scegli «Salva su Google Drive»)</h3>
+      <p>
+        Una copia dei dati del nucleo, cifrata sul telefono con AES-256-GCM prima dell’invio, si trova nella cartella «Masterfood - nome del
+        nucleo» sul Drive di chi ha creato il nucleo. La chiave di cifratura e l’elenco dei tuoi nuclei stanno nell’area nascosta dell’app sul tuo
+        Drive. Senza la chiave i file sono illeggibili, anche per lo sviluppatore.
+      </p>
+      <h3>Con la famiglia</h3>
+      <p>
+        Quando inviti un familiare, l’app condivide la cartella del nucleo con il suo indirizzo Gmail tramite Google Drive. Il link di invito
+        contiene la chiave del nucleo: mandalo solo alla persona che vuoi invitare.
+      </p>
+
+      <h2 id="google">2. Accesso con Google e permessi di Drive</h2>
+      <p>Masterfood chiede a Google solo questi permessi:</p>
+      <div class="tabella">
+        <table>
+          <thead>
+            <tr>
+              <th>Permesso</th>
+              <th>A cosa serve</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Identità e indirizzo email</td>
+              <td>Sapere chi sei, per ritrovare i tuoi nuclei e per gli inviti in famiglia.</td>
+            </tr>
+            <tr>
+              <td>«Soltanto i file di Google Drive specifici che usi con questa app» (drive.file)</td>
+              <td>Creare e aggiornare la cartella di Masterfood. L’app non vede, non apre e non cancella nessun altro file del tuo Drive.</td>
+            </tr>
+            <tr>
+              <td>«I propri dati di configurazione» (drive.appdata)</td>
+              <td>Salvare in un’area nascosta, riservata all’app, la chiave dei nuclei e il loro elenco.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        L’accesso dura circa un’ora e resta solo in memoria sul telefono: nessun server lo riceve. Puoi revocarlo in qualsiasi momento da
+        <a href="https://myaccount.google.com/connections" target="_blank" rel="noreferrer">Account Google → App e servizi di terze parti</a>.
+      </p>
+      <p>
+        L’uso e il trasferimento delle informazioni ricevute dalle API di Google rispettano le
+        <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer">norme sui dati utente dei servizi API di Google</a>,
+        compresi i requisiti di uso limitato (Limited Use). I dati non sono usati per pubblicità, non sono venduti e non sono usati per addestrare
+        modelli di intelligenza artificiale.
+      </p>
+
+      <h2 id="servizi">3. Servizi esterni usati dall’app</h2>
+      <p>Le richieste partono direttamente dal tuo telefono verso questi servizi, mai attraverso un server di Masterfood.</p>
+      <div class="tabella">
+        <table>
+          <thead>
+            <tr>
+              <th>Servizio</th>
+              <th>Quando</th>
+              <th>Cosa riceve</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Google (accesso e Drive)</td>
+              <td>Se accedi con Google</td>
+              <td>I file cifrati del nucleo e, per gli inviti, l’email del familiare.</td>
+            </tr>
+            <tr>
+              <td>Google Gemini</td>
+              <td>Se inserisci la tua chiave e analizzi una foto di frigo, freezer o dispensa</td>
+              <td>
+                La foto, con la tua chiave. Con il piano gratuito di Gemini Google può usare i contenuti inviati per migliorare i suoi servizi
+                (<a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noreferrer">termini di Gemini API</a>): non fotografare persone
+                o documenti.
+              </td>
+            </tr>
+            <tr>
+              <td>Open Food Facts</td>
+              <td>Quando scansioni un codice a barre</td>
+              <td>Solo il numero del codice a barre.</td>
+            </tr>
+            <tr>
+              <td>jsDelivr</td>
+              <td>La prima volta che leggi uno scontrino o un codice</td>
+              <td>Nessun dato tuo: si scaricano i motori di lettura, che poi funzionano sul telefono.</td>
+            </tr>
+            <tr>
+              <td>GitHub Pages</td>
+              <td>Quando apri l’app</td>
+              <td>Come ogni sito, l’indirizzo IP per consegnare l’app.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Le foto degli scontrini si leggono sul telefono e non vengono salvate né inviate.</p>
+
+      <h2 id="permessi">4. Permessi del telefono</h2>
+      <ul>
+        <li><strong>Fotocamera</strong>: solo mentre inquadri un codice a barre, uno scontrino o il frigo. Si spegne quando chiudi la schermata.</li>
+        <li>
+          <strong>Notifiche</strong>: solo se attivi gli avvisi di scadenza. Il testo dell’avviso si prepara sul telefono, senza server.
+        </li>
+        <li><strong>Memoria del browser</strong>: per salvare i dati sul dispositivo e far funzionare l’app offline. Nessun cookie di tracciamento.</li>
+      </ul>
+
+      <h2 id="diritti">5. I tuoi diritti e come cancellare tutto</h2>
+      <p>I dati sono tuoi e li controlli tu, come previsto dal Regolamento UE 2016/679 (GDPR):</p>
+      <ul>
+        <li><strong>Copia</strong>: Impostazioni → I tuoi dati → Scarica i dati (JSON).</li>
+        <li><strong>Correzione</strong>: modifica direttamente profili, casa, lista e ricette nell’app.</li>
+        <li><strong>Cancellazione dal telefono</strong>: Impostazioni → I tuoi dati → Elimina da questo dispositivo.</li>
+        <li><strong>Cancellazione da Drive</strong>: elimina la cartella «Masterfood - nome del nucleo» dal tuo Google Drive.</li>
+        <li><strong>Revoca dell’accesso</strong>: dalla pagina delle app collegate del tuo Account Google.</li>
+      </ul>
+      <p>
+        Puoi anche presentare reclamo al <a href="https://www.garanteprivacy.it" target="_blank" rel="noreferrer">Garante per la protezione dei dati personali</a>.
+      </p>
+
+      <h2 id="termini">6. Termini d’uso</h2>
+      <ul>
+        <li>Masterfood è gratuita e fornita «così com’è», senza garanzie di funzionamento continuo o di assenza di errori.</li>
+        <li>
+          <strong>Sicurezza alimentare</strong>: date di scadenza, tempi di conservazione e consigli per il frigo sono indicazioni generali. Vale
+          sempre quello che c’è scritto sull’etichetta e il tuo giudizio.
+        </li>
+        <li>
+          <strong>Allergie</strong>: l’app esclude le ricette con allergeni indicati, ma riconoscimento delle foto e dati dei prodotti possono
+          sbagliare. Controlla sempre gli ingredienti, soprattutto per allergie gravi.
+        </li>
+        <li>
+          <strong>Non è un consiglio medico</strong>: porzioni e fabbisogni sono stime. Per una dieta, gravidanza o patologie segui il tuo medico o
+          dietista.
+        </li>
+        <li>Sei responsabile della chiave Gemini che inserisci e del suo uso nei limiti dei termini di Google.</li>
+        <li>Dati dei prodotti da Open Food Facts, con licenza ODbL.</li>
+        <li>Questi termini possono cambiare: la data in alto indica l’ultima modifica.</li>
+      </ul>
+
+      <h2 id="contatti">7. Titolare e contatti</h2>
+      <p>
+        Titolare del trattamento è lo sviluppatore di Masterfood. Per domande, richieste sui dati o segnalazioni scrivi tramite
+        <a href="https://github.com/tqpsy/Mastercook/issues" target="_blank" rel="noreferrer">la pagina del progetto su GitHub</a>.
+      </p>
+    </main>
+  </body>
+</html>
