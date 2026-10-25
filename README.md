@@ -6,7 +6,7 @@ Web app installabile (PWA) per la gestione alimentare della famiglia: inventario
 
 ## Principi
 
-- **I dati del nucleo non passano dallo sviluppatore.** Inventario, lista, ricette, profili e allergie vivono in un documento CRDT [Yjs](https://yjs.dev) salvato in IndexedDB e, cifrato con AES-256-GCM sul dispositivo, sul Google Drive personale di chi crea il nucleo (scope `drive.file`, condiviso ai membri con Google Picker).
+- **I dati del nucleo non passano dallo sviluppatore.** Inventario, lista, ricette, profili e allergie vivono in un documento CRDT [Yjs](https://yjs.dev) salvato in IndexedDB e, cifrato con AES-256-GCM sul dispositivo, sul Google Drive personale di chi crea il nucleo (scope `drive.file`). Per i familiari invitati c'è una copia, cifrata allo stesso modo, su Firebase (Cloud Firestore, piano gratuito): entrano con il solo accesso Google, e le regole in `docs/firestore.rules` fanno leggere un nucleo solo alle email invitate. Senza Firebase configurato (`VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_PROJECT_ID`) gli invitati confermano i file di Drive con Google Picker.
 - **Nessun server:** l'accesso è con Google; chiave del nucleo ed elenco dei nuclei stanno nell'area nascosta dell'app sul Drive dell'utente (`appDataFolder`), i dati nella cartella "Masterfood - <nucleo>", cifrati.
 - **Costo zero:** solo piani gratuiti (GitHub Pages, API Google gratuite, Open Food Facts). OCR degli scontrini sul dispositivo con Tesseract.js. Riconoscimento delle foto con Gemini solo con la chiave gratuita dell'utente (BYOK), chiamato direttamente dal dispositivo.
 - **Sicurezza alimentare invalicabile:** 14 allergeni UE come filtro rigido prima di ogni suggerimento, limiti di conservazione che non si possono superare.

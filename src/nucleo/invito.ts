@@ -8,6 +8,7 @@ import type { Membro } from '../dominio/tipi';
 import { apriDocumentoLocale, collezione, modificaEntita } from '../piattaforma/documento';
 import { condividi, ErroreDrive, scaricaFile } from '../piattaforma/drive';
 import { tokenValido } from '../piattaforma/google';
+import { aggiornaMembriRelay, depositoRelay, fileRelay, relayConfigurato } from '../piattaforma/firebase';
 import { confermaFile } from '../piattaforma/picker';
 import { annotaNellArchivio, assicuraFileFoto, scaricaNucleo, type VoceArchivio } from './account';
 import { salvaMembro, type DatiMembro } from './azioni';
@@ -59,6 +60,9 @@ export async function invita(ctx: ContestoNucleo, email: string, nomeChiInvita: 
   if (!nucleo.drive.chiave || nucleo.drive.proprietario === false) throw new Error('solo_proprietario');
   const nome = (collezione(ctx.dati, 'meta').get('nucleo')?.get('nome') as string | undefined) ?? nucleo.nome;
   const foto = await assicuraFileFoto(nucleo.id);
+  // Con la copia condivisa su Firebase chi è invitato entra senza confermare i file di Drive.
+  // Se Firebase non risponde l'invito vale lo stesso: entrerà confermando i file.
+  if (relayConfigurato()) await aggiornaMembriRelay(nucleo.id, { aggiungi: [email] }).catch(() => undefined);
   await condividi(nucleo.drive.cartella, email, `${nomeChiInvita} ti invita nel nucleo «${nome}» di Masterfood. Apri il link che ti ha mandato.`);
   return linkInvito(
     { n: nucleo.id, nome, da: nomeChiInvita, c: nucleo.drive.cartella, d: nucleo.drive.dati, s: nucleo.drive.storico, k: nucleo.drive.chiave, f: foto },
@@ -77,6 +81,20 @@ const voceDa = (invito: Invito, membroId: string): VoceArchivio => ({
   storico: invito.s,
   foto: invito.f,
 });
+
+/**
+ * Vero se chi è invitato può leggere la copia condivisa su Firebase: allora entra senza altri passaggi.
+ * Falso se Firebase non è configurato, non risponde, o il nucleo non c'è ancora (chi ha invitato usa
+ * una versione vecchia dell'app): si passa ai file di Drive.
+ */
+export async function accessoCopiaCondivisa(invito: Invito): Promise<boolean> {
+  if (!relayConfigurato()) return false;
+  try {
+    return (await depositoRelay.versione(fileRelay(invito.n, 'dati'))) !== '';
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Vero se l'app vede già i file del nucleo. Con drive.file Google chiede a ogni invitato di
@@ -99,9 +117,9 @@ export async function confermaFileInvito(invito: Invito): Promise<void> {
   if (!confermati.includes(invito.d) || !confermati.includes(invito.s)) throw new Error('file_non_confermati');
 }
 
-/** Scarica il nucleo condiviso, a file già accessibili. Serve un token valido. */
-export async function scaricaNucleoCondiviso(invito: Invito): Promise<void> {
-  await scaricaNucleo(voceDa(invito, ''), invito.k);
+/** Scarica il nucleo condiviso, da Firebase (`relay`) o dai file di Drive già accessibili. Serve un token valido. */
+export async function scaricaNucleoCondiviso(invito: Invito, relay = false): Promise<void> {
+  await scaricaNucleo(voceDa(invito, ''), invito.k, relay);
 }
 
 /** Membri del nucleo scaricato, per scegliere "chi sei". */

@@ -49,4 +49,22 @@ describe('sincronizzazione con Drive', () => {
     await sincronizzaDocumento(a, 'f', chiave, ra);
     expect(file.versione).toBe(versione);
   });
+
+  it('una copia condivisa che non c’è ancora si crea caricando tutto', async () => {
+    const copia: { contenuto?: Uint8Array } = {};
+    const deposito = {
+      versione: async () => (copia.contenuto ? 'r1' : ''),
+      scarica: async () => copia.contenuto!,
+      aggiorna: async (_id: string, c: Uint8Array) => {
+        copia.contenuto = c;
+        return 'r1';
+      },
+    };
+    const a = new Y.Doc();
+    a.getMap('liste').set('pane', 'x');
+    await sincronizzaDocumento(a, 'nuclei/n/file/dati', chiave, {}, deposito);
+    const b = new Y.Doc();
+    await sincronizzaDocumento(b, 'nuclei/n/file/dati', chiave, {}, deposito);
+    expect(b.getMap('liste').toJSON()).toEqual({ pane: 'x' });
+  });
 });

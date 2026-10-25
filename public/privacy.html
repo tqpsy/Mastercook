@@ -95,9 +95,9 @@
       <p class="tenue">Aggiornati il 25 ottobre 2026.</p>
 
       <p>
-        Masterfood è un’app gratuita per gestire dispensa, spesa e ricette della famiglia. In breve: <strong>non c’è un server di Masterfood</strong>.
-        I dati restano sul tuo telefono e, se lo scegli, in una cartella cifrata sul Google Drive di chi ha creato il nucleo. Nessuna pubblicità,
-        nessun tracciamento, nessuna vendita di dati.
+        Masterfood è un’app gratuita per gestire dispensa, spesa e ricette della famiglia. In breve: <strong>nessun server può leggere i tuoi dati</strong>.
+        I dati restano sul tuo telefono e, se lo scegli, in una cartella cifrata sul Google Drive di chi ha creato il nucleo, con una copia
+        cifrata su Firebase per i familiari invitati. Nessuna pubblicità, nessun tracciamento, nessuna vendita di dati.
       </p>
 
       <nav class="indice">
@@ -137,6 +137,13 @@
       <p>
         Quando inviti un familiare, l’app condivide la cartella del nucleo con il suo indirizzo Gmail tramite Google Drive. Il link di invito
         contiene la chiave del nucleo: mandalo solo alla persona che vuoi invitare.
+      </p>
+      <h3>Copia condivisa su Firebase</h3>
+      <p>
+        Perché chi inviti entri con il solo accesso Google, una copia dei dati del nucleo, cifrata sul telefono con la stessa chiave, sta su
+        Firebase (Cloud Firestore di Google, server in Europa). Possono leggerla e scriverla solo gli indirizzi email invitati da chi ha creato il
+        nucleo; senza la chiave è illeggibile, anche per lo sviluppatore e per Google. Firebase riceve l’indirizzo email di chi entra, per
+        controllare che sia stato invitato.
       </p>
 
       <h2 id="google">2. Accesso con Google e permessi di Drive</h2>
@@ -194,6 +201,11 @@
               <td>I file cifrati del nucleo e, per gli inviti, l’email del familiare.</td>
             </tr>
             <tr>
+              <td>Firebase (Google)</td>
+              <td>Se il nucleo è collegato a Google</td>
+              <td>La copia cifrata del nucleo e l’email di chi entra, per controllare gli inviti.</td>
+            </tr>
+            <tr>
               <td>Google Gemini</td>
               <td>Se inserisci la tua chiave e analizzi una foto di frigo, freezer o dispensa</td>
               <td>
@@ -237,7 +249,7 @@
         <li><strong>Copia</strong>: Impostazioni → I tuoi dati → Scarica i dati (JSON).</li>
         <li><strong>Correzione</strong>: modifica direttamente profili, casa, lista e ricette nell’app.</li>
         <li><strong>Cancellazione dal telefono</strong>: Impostazioni → I tuoi dati → Elimina da questo dispositivo.</li>
-        <li><strong>Cancellazione da Drive</strong>: elimina la cartella «Masterfood - nome del nucleo» dal tuo Google Drive.</li>
+        <li><strong>Cancellazione da Drive e Firebase</strong>: Impostazioni → elimina il nucleo (o l’account) dall’app; in alternativa elimina la cartella «Masterfood - nome del nucleo» dal tuo Google Drive.</li>
         <li><strong>Revoca dell’accesso</strong>: dalla pagina delle app collegate del tuo Account Google.</li>
       </ul>
       <p>

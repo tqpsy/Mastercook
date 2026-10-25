@@ -9,6 +9,7 @@ import { cifraFile, esportaChiave, generaChiaveNucleo, importaChiave } from '../
 import { applicaDocumentoCifrato, apriDocumentoLocale, collezione, esportaDocumentoCifrato } from '../piattaforma/documento';
 import { eliminaChiaveProtetta, leggiChiaveProtetta, salvaChiaveProtetta } from '../piattaforma/archivioChiavi';
 import { creaCartella, creaFile, eliminaFile, eMio, leggiArchivio, scaricaFile, scriviArchivio } from '../piattaforma/drive';
+import { depositoRelay, eliminaRelay, esciDaFirebase, fileRelay, relayConfigurato } from '../piattaforma/firebase';
 import { esciDaGoogle, leggiEmail, richiediToken } from '../piattaforma/google';
 import type { ContestoNucleo } from './contesto';
 import { leggiNuclei, rimuoviNucleoLocale, salvaNucleoLocale, scriviMembroCorrente, type NucleoLocale } from './registro';
@@ -46,6 +47,7 @@ export async function accedi(): Promise<string> {
 
 export function esci(): void {
   esciDaGoogle();
+  esciDaFirebase();
   try {
     localStorage.removeItem(CHIAVE_ACCOUNT);
   } catch {
@@ -133,20 +135,28 @@ export async function collegaNucleo(ctx: ContestoNucleo): Promise<NucleoLocale> 
  * Scarica da Drive i due documenti di un nucleo e lo registra su questo dispositivo.
  * Per un nucleo condiviso da altri la chiave si conserva protetta e non in chiaro.
  */
-export async function scaricaNucleo(voce: VoceArchivio, chiaveInvito?: string): Promise<NucleoLocale> {
+export async function scaricaNucleo(voce: VoceArchivio, chiaveInvito?: string, relay = false): Promise<NucleoLocale> {
   const condiviso = !!chiaveInvito;
   const nucleo: NucleoLocale = {
     id: voce.id,
     nome: voce.nome,
     creato_il: new Date().toISOString(),
     modalita: 'locale_drive',
-    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, foto: voce.foto, ...(condiviso ? { proprietario: false } : { chiave: voce.chiave }) },
+    drive: {
+      cartella: voce.cartella,
+      dati: voce.dati,
+      storico: voce.storico,
+      foto: voce.foto,
+      ...(condiviso ? { proprietario: false } : { chiave: voce.chiave }),
+      ...(relay ? { relay: true } : {}),
+    },
   };
   if (condiviso) chiavi.set(voce.id, await salvaChiaveProtetta(voce.id, daBase64(chiaveInvito)));
   const chiave = await chiaveDelNucleo(nucleo);
   for (const tipo of ['dati', 'storico'] as const) {
     const { doc, persistenza } = await apriDocumentoLocale(voce.id, tipo);
-    await applicaDocumentoCifrato(doc, chiave, await scaricaFile(voce[tipo]));
+    const file = relay ? await depositoRelay.scarica(fileRelay(voce.id, tipo)) : await scaricaFile(voce[tipo]);
+    await applicaDocumentoCifrato(doc, chiave, file);
     if (tipo === 'dati') nucleo.nome = (collezione(doc, 'meta').get('nucleo')?.get('nome') as string | undefined) ?? nucleo.nome;
     await persistenza.destroy();
     doc.destroy();
@@ -220,6 +230,7 @@ export async function eliminaNucleoDaDrive(id: string): Promise<'cancellato' | '
   let esito: 'cancellato' | 'lasciato' = 'lasciato';
   if (cartella && (await eMio(cartella).catch(() => false))) {
     await eliminaFile(cartella);
+    if (relayConfigurato()) await eliminaRelay(id).catch(() => undefined);
     esito = 'cancellato';
   }
   if (archivio) {
@@ -239,6 +250,9 @@ export async function eliminaAccount(): Promise<void> {
   const archivio = await leggiArchivio<Archivio>();
   const cartelle = new Set([...(archivio?.contenuto.nuclei ?? []).map((n) => n.cartella), ...leggiNuclei().flatMap((n) => (n.drive ? [n.drive.cartella] : []))]);
   for (const cartella of cartelle) if (await eMio(cartella).catch(() => false)) await eliminaFile(cartella);
+  if (relayConfigurato()) {
+    for (const n of leggiNuclei()) if (n.drive && n.drive.proprietario !== false) await eliminaRelay(n.id).catch(() => undefined);
+  }
   if (archivio) await eliminaFile(archivio.id);
   for (const n of leggiNuclei()) eliminaNucleoDalDispositivo(n.id);
   esci();

@@ -11,8 +11,9 @@ export interface NucleoLocale {
   /**
    * File del nucleo su Google Drive, quando è collegato a un account. `chiave` (base64) c'è solo
    * per chi ha creato il nucleo; chi è invitato la tiene protetta in archivioChiavi.
+   * `relay`: chi è invitato legge e scrive la copia condivisa su Firebase invece dei file di Drive.
    */
-  drive?: { cartella: string; dati: string; storico: string; chiave?: string; foto?: string; proprietario?: boolean };
+  drive?: { cartella: string; dati: string; storico: string; chiave?: string; foto?: string; proprietario?: boolean; relay?: boolean };
 }
 
 const CHIAVE_NUCLEI = 'masterfood:nuclei';

@@ -5,8 +5,9 @@ import { ModuloMembro, membroVuoto } from '../componenti/ModuloMembro';
 import { messaggioErroreGoogle } from '../componenti/Sincronizzazione';
 import type { Membro } from '../dominio/tipi';
 import { accedi } from '../nucleo/account';
-import { accessoAiFile, completaIngresso, confermaFileInvito, membriDelNucleo, scaricaNucleoCondiviso, type Invito as DatiInvito } from '../nucleo/invito';
+import { accessoAiFile, accessoCopiaCondivisa, completaIngresso, confermaFileInvito, membriDelNucleo, scaricaNucleoCondiviso, type Invito as DatiInvito } from '../nucleo/invito';
 import { leggiNuclei } from '../nucleo/registro';
+import { relayConfigurato } from '../piattaforma/firebase';
 import { useSessione } from '../stato/sessione';
 
 type Passo = { tipo: 'accedi' } | { tipo: 'conferma'; email: string } | { tipo: 'chi'; email: string; membri: Membro[] } | { tipo: 'nuovo'; email: string };
@@ -47,8 +48,8 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
   }
 
   /** A file accessibili: scarica il nucleo e, se l'account ha già un profilo, entra subito. */
-  async function scaricaEProsegui(email: string) {
-    await scaricaNucleoCondiviso(invito);
+  async function scaricaEProsegui(email: string, relay = false) {
+    await scaricaNucleoCondiviso(invito, relay);
     const membri = await membriDelNucleo(invito.n);
     const gia = membri.find((m) => m.utente_id === email);
     if (gia) return await entra({ membroId: gia.id }, email);
@@ -154,6 +155,7 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
           setErrore(null);
           try {
             const email = await accedi();
+            if (await accessoCopiaCondivisa(invito)) return await scaricaEProsegui(email, true);
             if (!(await accessoAiFile(invito))) return setPasso({ tipo: 'conferma', email });
             await scaricaEProsegui(email);
           } catch (e) {
@@ -163,7 +165,9 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
           }
         }}
       />
-      <p className="testo-tenue piccolo">Usa l’account Google a cui {invito.da} ha mandato l’invito. La prima volta Google ti chiede anche di confermare i file del nucleo.</p>
+      <p className="testo-tenue piccolo">Usa l’account Google a cui {invito.da} ha mandato l’invito.{' '}
+        {relayConfigurato() ? 'Basta l’accesso: i dati arrivano da soli.' : 'La prima volta Google ti chiede anche di confermare i file del nucleo.'}
+      </p>
       {errore && <p className="esito-errore" role="alert">{errore}</p>}
       {leggiNuclei().length > 0 && (
         <button

@@ -1,0 +1,32 @@
+rules_version = '2';
+// Regole di Firestore per Masterfood: da incollare in Firebase → Firestore Database → Regole.
+// Un nucleo lo leggono e lo scrivono solo le email in «membri», che solo il proprietario cambia.
+// I file sono cifrati sul telefono: Firestore conserva solo byte illeggibili.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function accesso() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() {
+      return request.auth.token.email.lower();
+    }
+    function membro(n) {
+      return accesso() && email() in get(/databases/$(database)/documents/nuclei/$(n)).data.membri;
+    }
+    match /nuclei/{n} {
+      allow get: if accesso() && email() in resource.data.membri;
+      allow create: if accesso() && request.resource.data.proprietario == email()
+        && request.resource.data.membri == [email()];
+      allow update: if accesso() && resource.data.proprietario == email()
+        && request.resource.data.proprietario == email()
+        && email() in request.resource.data.membri;
+      allow delete: if accesso() && resource.data.proprietario == email();
+      match /file/{tipo} {
+        allow read, write: if membro(n);
+        match /parti/{parte} {
+          allow read, write: if membro(n);
+        }
+      }
+    }
+  }
+}
