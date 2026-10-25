@@ -116,3 +116,19 @@ export async function condividi(id: string, email: string, messaggio: string): P
     body: JSON.stringify({ type: 'user', role: 'writer', emailAddress: email }),
   });
 }
+
+/** Elimina per sempre un file o una cartella (con tutto quello che contiene) creati dall'app. */
+export async function eliminaFile(id: string): Promise<void> {
+  try {
+    await chiama(`${API}/${id}`, { method: 'DELETE' });
+  } catch (e) {
+    // Già eliminato: va bene lo stesso.
+    if (!(e instanceof ErroreDrive && e.stato === 404)) throw e;
+  }
+}
+
+/** Vero se il file è sul Drive di chi usa l'app (e non condiviso da un altro). */
+export async function eMio(id: string): Promise<boolean> {
+  const r = await chiama(`${API}/${id}?fields=ownedByMe`);
+  return ((await r.json()) as { ownedByMe?: boolean }).ownedByMe === true;
+}

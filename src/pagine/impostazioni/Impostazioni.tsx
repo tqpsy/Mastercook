@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { emojiMembro } from '../../dominio/emojiMembro';
 import { AvvisiScadenza } from '../../componenti/AvvisiScadenza';
 import { Link } from 'react-router-dom';
-import * as Y from 'yjs';
 import { Installazione } from '../../componenti/Installazione';
 import { Sincronizzazione } from '../../componenti/Sincronizzazione';
 import { mostraAvviso } from '../../componenti/ui';
@@ -10,10 +9,11 @@ import { ALLERGENI_UE, type Allergene } from '../../dominio/allergeni';
 import { collezione, modificaEntita } from '../../piattaforma/documento';
 import { useNucleo } from '../../nucleo/contesto';
 import { useMembri } from '../../nucleo/derivati';
-import { rimuoviNucleoLocale, salvaNucleoLocale } from '../../nucleo/registro';
+import { salvaNucleoLocale } from '../../nucleo/registro';
 import { useSessione } from '../../stato/sessione';
 import { useTema, type Tema } from '../../stato/tema';
 import { ChiaveApi } from '../../componenti/ChiaveApi';
+import { IMieiDati } from '../../componenti/IMieiDati';
 import { cercaAggiornamento, type EsitoAggiornamento } from '../../piattaforma/aggiornamento';
 
 const TEMI: { id: Tema; nome: string }[] = [
@@ -39,27 +39,10 @@ function SceltaTema() {
   );
 }
 
-function scaricaBackup(nome: string, dati: Y.Doc, storico: Y.Doc) {
-  const contenuto = {
-    formato: 'masterfood-export',
-    versione: 1,
-    esportato_il: new Date().toISOString(),
-    dati: dati.toJSON(),
-    storico: storico.toJSON(),
-  };
-  const blob = new Blob([JSON.stringify(contenuto, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `masterfood-${nome.toLowerCase().replace(/\W+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export function Impostazioni() {
   const nucleo = useNucleo();
   const membri = useMembri();
-  const { scegliMembro, scegliNucleo } = useSessione();
+  const { scegliMembro } = useSessione();
   const [nome, setNome] = useState(nucleo.nucleo.nome);
 
   return (
@@ -140,33 +123,7 @@ export function Impostazioni() {
       <ChiaveApi />
       <Installazione />
 
-      <div className="sezione">
-        <h2>I tuoi dati</h2>
-        <p className="testo-tenue piccolo">
-          Inventario, lista, ricette e profili restano su questo dispositivo. Puoi scaricarne una copia leggibile in qualsiasi momento.
-        </p>
-        <div className="azioni">
-          <button type="button" className="bottone secondario" onClick={() => scaricaBackup(nucleo.nucleo.nome, nucleo.dati, nucleo.storico)}>
-            Scarica i dati (JSON)
-          </button>
-          <Link className="bottone secondario" to="/impostazioni/cestino">
-            Cestino
-          </Link>
-          <button
-            type="button"
-            className="bottone pericolo"
-            onClick={async () => {
-              if (!confirm(`Eliminare «${nucleo.nucleo.nome}» e tutti i suoi dati da questo dispositivo? Non si può annullare.`)) return;
-              const id = nucleo.nucleo.id;
-              rimuoviNucleoLocale(id);
-              scegliNucleo(null);
-              for (const tipo of ['dati', 'storico']) indexedDB.deleteDatabase(`masterfood-${id}-${tipo}`);
-            }}
-          >
-            Elimina da questo dispositivo
-          </button>
-        </div>
-      </div>
+      <IMieiDati />
 
       <PrivacyETermini />
 

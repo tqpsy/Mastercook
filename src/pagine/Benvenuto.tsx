@@ -5,6 +5,7 @@ import { messaggioErroreGoogle } from '../componenti/Sincronizzazione';
 import { googleConfigurato } from '../config';
 import { accedi, recuperaNuclei } from '../nucleo/account';
 import { creaNucleoLocale } from '../nucleo/crea';
+import { creaNucleoDaBackup, leggiBackup } from '../nucleo/ripristino';
 import { useSessione } from '../stato/sessione';
 
 const PUNTI = [
@@ -49,6 +50,26 @@ export function Benvenuto() {
             Ho già un nucleo su Google Drive
           </button>
         )}
+        <label className="bottone-testo">
+          Ripristina da una copia dei dati
+          <input
+            type="file"
+            accept="application/json,.json"
+            className="nascosto-visivamente"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              setErrore(null);
+              try {
+                scegliNucleo(await creaNucleoDaBackup(leggiBackup(await f.text())));
+              } catch (err) {
+                setErrore(err instanceof Error ? err.message : 'Ripristino non riuscito.');
+              }
+            }}
+          />
+        </label>
+        {errore && <p className="esito-errore" role="alert">{errore}</p>}
         <p className="testo-tenue piccolo">
           Nessuna registrazione necessaria per provarla: si parte su questo dispositivo, l’accesso con Google si aggiunge quando vuoi.
         </p>
