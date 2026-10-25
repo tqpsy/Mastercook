@@ -9,9 +9,14 @@ const pacchetto = JSON.parse(readFileSync(new URL('./package.json', import.meta.
 // BASE_URL: "/" su Cloudflare Pages, "/Mastercook/" su GitHub Pages (impostato dal workflow).
 const base = process.env.BASE_URL_APP ?? '/';
 
+// Versione mostrata nelle Impostazioni: numero del pacchetto + data della pubblicazione (ora italiana),
+// così si vede subito se il telefono ha l'ultima.
+const pubblicata = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(new Date());
+const versioneApp = `${pacchetto.version} del ${pubblicata}`;
+
 export default defineConfig({
   base,
-  define: { __VERSIONE_APP__: JSON.stringify(pacchetto.version) },
+  define: { __VERSIONE_APP__: JSON.stringify(versioneApp) },
   plugins: [
     react(),
     VitePWA({
