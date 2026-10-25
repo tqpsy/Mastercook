@@ -10,7 +10,7 @@ import { leggiNuclei } from '../nucleo/registro';
 import { relayConfigurato } from '../piattaforma/firebase';
 import { useSessione } from '../stato/sessione';
 
-type Passo = { tipo: 'accedi' } | { tipo: 'conferma'; email: string } | { tipo: 'chi'; email: string; membri: Membro[] } | { tipo: 'nuovo'; email: string };
+type Passo = { tipo: 'accedi' } | { tipo: 'conferma'; email: string; motivo: string } | { tipo: 'chi'; email: string; membri: Membro[] } | { tipo: 'nuovo'; email: string };
 
 /** Torna all'app normale, togliendo l'invito dall'indirizzo. */
 function chiudiInvito() {
@@ -71,6 +71,7 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
           <li>Tocca «Seleziona».</li>
         </ol>
         <p className="testo-tenue piccolo">Non dovrai rifarlo: vale per il tuo account su tutti i telefoni. Masterfood non vede gli altri file del tuo Drive.</p>
+        {relayConfigurato() && <p className="testo-tenue piccolo">Ingresso diretto non disponibile: {passo.motivo}.</p>}
         <button
           type="button"
           className="bottone pieno"
@@ -155,8 +156,9 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
           setErrore(null);
           try {
             const email = await accedi();
-            if (await accessoCopiaCondivisa(invito)) return await scaricaEProsegui(email, true);
-            if (!(await accessoAiFile(invito))) return setPasso({ tipo: 'conferma', email });
+            const copia = await accessoCopiaCondivisa(invito);
+            if (copia === true) return await scaricaEProsegui(email, true);
+            if (!(await accessoAiFile(invito))) return setPasso({ tipo: 'conferma', email, motivo: copia });
             await scaricaEProsegui(email);
           } catch (e) {
             setErrore(messaggioErrore(e));

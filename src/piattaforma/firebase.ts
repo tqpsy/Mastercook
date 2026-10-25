@@ -44,7 +44,10 @@ async function accesso(): Promise<{ idToken: string; email: string }> {
     throw new ErroreDrive(502, 'firebase_rete');
   }
   // Un Firebase configurato male non va scambiato per «accesso tolto».
-  if (!r.ok) throw new ErroreDrive(502, 'firebase_accesso');
+  if (!r.ok) {
+    const motivo = ((await r.json().catch(() => ({}))) as { error?: { message?: string } }).error?.message ?? String(r.status);
+    throw new ErroreDrive(502, `accesso a Firebase rifiutato (${motivo.split(':')[0]!.trim()})`);
+  }
   const j = (await r.json()) as { idToken: string; expiresIn: string; email?: string };
   sessione = { idToken: j.idToken, scade: Date.now() + Number(j.expiresIn) * 1000, email: (j.email ?? '').toLowerCase(), google };
   return sessione;
