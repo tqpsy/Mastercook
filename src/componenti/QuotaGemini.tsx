@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { leggiChiave } from '../piattaforma/chiaviApi';
-import { impostaLimite, oraAzzeramento, ricaricaQuota, useQuotaGemini } from '../piattaforma/quotaGemini';
+import { usePausaGemini } from '../piattaforma/gemini';
+import { impostaLimite, inRiserva, oraAzzeramento, ricaricaQuota, useQuotaGemini } from '../piattaforma/quotaGemini';
 
 /** Il messaggio per chi ha finito la prova gratuita del giorno. */
 export const messaggioQuotaFinita = () =>
@@ -11,7 +12,11 @@ export const messaggioQuotaFinita = () =>
  * `modificabile`: permette di correggere il limite leggendolo su AI Studio.
  */
 export function QuotaGemini({ modificabile = false }: { modificabile?: boolean }) {
-  const { usate, limite, esaurita } = useQuotaGemini();
+  const stato = useQuotaGemini();
+  const { usate, limite, esaurita } = stato;
+  const riserva = inRiserva(stato);
+  const pausaFino = usePausaGemini((p) => p.fino);
+  const [adesso, setAdesso] = useState(() => Date.now());
   const [modifica, setModifica] = useState(false);
   // A cavallo della mezzanotte di Google il conteggio torna a zero anche con la pagina aperta.
   useEffect(() => {
@@ -19,6 +24,12 @@ export function QuotaGemini({ modificabile = false }: { modificabile?: boolean }
     const t = setInterval(ricaricaQuota, 60_000);
     return () => clearInterval(t);
   }, []);
+  // Il conto alla rovescia della pausa chiesta da Google.
+  useEffect(() => {
+    if (!pausaFino) return;
+    const t = setInterval(() => setAdesso(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [pausaFino]);
   if (!leggiChiave('gemini')) return null;
   const rimaste = esaurita ? 0 : Math.max(0, limite - usate);
   const quota = Math.min(1, esaurita ? 1 : usate / limite);
@@ -26,7 +37,7 @@ export function QuotaGemini({ modificabile = false }: { modificabile?: boolean }
     <div className="riquadro quota-gemini">
       <div className="quota-gemini-testa">
         <span>Prova gratuita di Gemini oggi</span>
-        <strong>{rimaste === 0 ? 'Terminata' : `${rimaste === 1 ? 'resta 1 analisi' : `restano ${rimaste} analisi`}`}</strong>
+        <strong>{esaurita ? 'Terminata' : riserva ? 'Modello di riserva' : rimaste === 0 ? 'Quasi finita' : `${rimaste === 1 ? 'resta 1 analisi' : `restano ${rimaste} analisi`}`}</strong>
       </div>
       <div
         className={`progresso${quota >= 1 ? ' pieno' : quota >= 0.75 ? ' quasi' : ''}`}
@@ -39,6 +50,14 @@ export function QuotaGemini({ modificabile = false }: { modificabile?: boolean }
       >
         <span style={{ width: `${Math.round(quota * 100)}%` }} />
       </div>
+      {pausaFino && (
+        <p className="piccolo" role="status">
+          Gemini chiede una breve pausa (limite al minuto): riprendo da solo tra {Math.min(60, Math.max(1, Math.ceil((pausaFino - adesso) / 1000)))} s.
+        </p>
+      )}
+      {riserva && (
+        <p className="piccolo">Finite per oggi le analisi del modello principale: continuo con uno più leggero, sempre gratis.</p>
+      )}
       <p className="testo-tenue piccolo">
         {Math.min(usate, limite)} di circa {limite} usate su questo telefono · si azzera alle {oraAzzeramento()}.
         {modificabile && !modifica && (

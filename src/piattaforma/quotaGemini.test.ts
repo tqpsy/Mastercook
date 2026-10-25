@@ -13,7 +13,8 @@ globalThis.localStorage ??= {
   },
 };
 
-const { eQuotaGiornaliera, giornoGoogle, impostaLimite, prossimoAzzeramento, quotaEsaurita, registraRichiesta, segnaEsaurita, useQuotaGemini } = await import('./quotaGemini');
+const { attesaDaErrore, eQuotaGiornaliera, giornoGoogle, impostaLimite, inRiserva, limiteDaErrore, MODELLI_GEMINI, modelloEsaurito, prossimoAzzeramento, quotaEsaurita, registraRichiesta, segnaEsaurita, useQuotaGemini } =
+  await import('./quotaGemini');
 
 describe('prova gratuita di Gemini', () => {
   beforeEach(() => localStorage.clear());
@@ -34,8 +35,28 @@ describe('prova gratuita di Gemini', () => {
     expect(useQuotaGemini.getState()).toMatchObject({ usate: 2, limite: 5, esaurita: false });
     expect(quotaEsaurita()).toBe(false);
     segnaEsaurita();
-    expect(quotaEsaurita()).toBe(true);
+    // Finito il modello principale si continua con quelli di riserva.
+    expect(quotaEsaurita()).toBe(false);
+    expect(inRiserva(useQuotaGemini.getState())).toBe(true);
     expect(useQuotaGemini.getState().usate).toBe(5);
+    for (const m of MODELLI_GEMINI) segnaEsaurita(m);
+    expect(quotaEsaurita()).toBe(true);
+  });
+
+  it('un vecchio «prova finita» vale solo per il modello principale', () => {
+    localStorage.setItem('masterfood:gemini:quota', JSON.stringify({ giorno: giornoGoogle(new Date()), usate: 20, esaurita: true }));
+    expect(quotaEsaurita()).toBe(false);
+    expect(modelloEsaurito(MODELLI_GEMINI[0]!)).toBe(true);
+    expect(modelloEsaurito(MODELLI_GEMINI[2]!)).toBe(false);
+  });
+
+  it('legge dall’errore il limite del giorno e la pausa chiesta', () => {
+    expect(limiteDaErrore('{"quotaValue": "250"}')).toBe(250);
+    expect(limiteDaErrore('{"quotaValue": "0"}')).toBeNull();
+    expect(attesaDaErrore('{"retryDelay": "37s"}')).toBe(37_000);
+    expect(attesaDaErrore('{"retryDelay": "0.5s"}')).toBe(2_000);
+    expect(attesaDaErrore('{"retryDelay": "3600s"}')).toBe(60_000);
+    expect(attesaDaErrore('')).toBe(20_000);
   });
 
   it('distingue la quota del giorno da quella del minuto', () => {
