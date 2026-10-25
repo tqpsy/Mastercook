@@ -7,10 +7,10 @@
 import { create } from 'zustand';
 import { cifraFile, esportaChiave, generaChiaveNucleo, importaChiave } from '../piattaforma/cifratura';
 import { applicaDocumentoCifrato, apriDocumentoLocale, collezione, esportaDocumentoCifrato } from '../piattaforma/documento';
-import { creaCartella, creaFile, leggiArchivio, scaricaFile, scriviArchivio } from '../piattaforma/drive';
+import { creaCartella, creaFile, eliminaFile, eMio, leggiArchivio, scaricaFile, scriviArchivio } from '../piattaforma/drive';
 import { esciDaGoogle, leggiEmail, richiediToken } from '../piattaforma/google';
 import type { ContestoNucleo } from './contesto';
-import { leggiNuclei, salvaNucleoLocale, scriviMembroCorrente, type NucleoLocale } from './registro';
+import { leggiNuclei, rimuoviNucleoLocale, salvaNucleoLocale, scriviMembroCorrente, type NucleoLocale } from './registro';
 
 /** Versione della chiave del nucleo: cambierà solo con la rotazione all'uscita di un membro. */
 export const VERSIONE_CHIAVE = 1;
@@ -186,4 +186,51 @@ export async function assicuraFileFoto(nucleoId: string): Promise<string> {
   const voce = archivio?.contenuto.nuclei.find((n) => n.id === nucleoId);
   if (voce) await annotaNellArchivio({ ...voce, foto: id });
   return id;
+}
+
+/** Cancella da questo dispositivo i documenti e il registro di un nucleo. */
+export function eliminaNucleoDalDispositivo(id: string): void {
+  rimuoviNucleoLocale(id);
+  chiavi.delete(id);
+  for (const tipo of ['dati', 'storico']) indexedDB.deleteDatabase(`masterfood-${id}-${tipo}`);
+}
+
+/**
+ * Elimina un nucleo anche da Google Drive. Se la cartella è sul tuo Drive la cancella con tutti
+ * i file (anche per gli invitati); se è di un altro, lo toglie solo dal tuo account. Serve un token.
+ */
+export async function eliminaNucleoDaDrive(id: string): Promise<'cancellato' | 'lasciato'> {
+  const nucleo = leggiNuclei().find((n) => n.id === id);
+  const archivio = await leggiArchivio<Archivio>();
+  const cartella = nucleo?.drive?.cartella ?? archivio?.contenuto.nuclei.find((n) => n.id === id)?.cartella;
+  let esito: 'cancellato' | 'lasciato' = 'lasciato';
+  if (cartella && (await eMio(cartella).catch(() => false))) {
+    await eliminaFile(cartella);
+    esito = 'cancellato';
+  }
+  if (archivio) {
+    const nuclei = archivio.contenuto.nuclei.filter((n) => n.id !== id);
+    if (nuclei.length) await scriviArchivio({ versione: 1, nuclei } satisfies Archivio, archivio.id);
+    else await eliminaFile(archivio.id);
+  }
+  eliminaNucleoDalDispositivo(id);
+  return esito;
+}
+
+/**
+ * Elimina l'account Masterfood: cartelle dei nuclei creati da te, archivio nascosto con le
+ * chiavi, dati su questo dispositivo e accesso a Google. Serve un token.
+ */
+export async function eliminaAccount(): Promise<void> {
+  const archivio = await leggiArchivio<Archivio>();
+  const cartelle = new Set([...(archivio?.contenuto.nuclei ?? []).map((n) => n.cartella), ...leggiNuclei().flatMap((n) => (n.drive ? [n.drive.cartella] : []))]);
+  for (const cartella of cartelle) if (await eMio(cartella).catch(() => false)) await eliminaFile(cartella);
+  if (archivio) await eliminaFile(archivio.id);
+  for (const n of leggiNuclei()) eliminaNucleoDalDispositivo(n.id);
+  esci();
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith('masterfood:')) localStorage.removeItem(k);
+  } catch {
+    // archivio non disponibile
+  }
 }
