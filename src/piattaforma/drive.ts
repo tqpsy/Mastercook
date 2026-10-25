@@ -103,3 +103,16 @@ export async function scriviArchivio(contenuto: unknown, id?: string): Promise<s
   }
   return (await creaFile(ARCHIVIO, 'appDataFolder', byte, 'application/json')).id;
 }
+
+/**
+ * Condivide un file o una cartella creati dall'app con un'altra persona, che potrà anche
+ * modificarli. Google le manda un'email con il messaggio indicato.
+ */
+export async function condividi(id: string, email: string, messaggio: string): Promise<void> {
+  const parametri = new URLSearchParams({ sendNotificationEmail: 'true', emailMessage: messaggio, fields: 'id' });
+  await chiama(`${API}/${id}/permissions?${parametri}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'user', role: 'writer', emailAddress: email }),
+  });
+}

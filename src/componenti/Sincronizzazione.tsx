@@ -7,6 +7,7 @@ import { useSessione } from '../stato/sessione';
 import { riprendiSync, sincronizzaOra, useSync, type StatoSync } from '../nucleo/sync';
 import { richiediToken, tokenValido } from '../piattaforma/google';
 import { BottoneGoogle } from './BottoneGoogle';
+import { InvitaFamiglia } from './InvitaFamiglia';
 import { mostraAvviso } from './ui';
 
 const DESCRIZIONE: Record<StatoSync, string> = {
@@ -132,6 +133,7 @@ export function Sincronizzazione() {
           </div>
         )}
       </div>
+      {collegato && email && <InvitaFamiglia />}
     </div>
   );
 }

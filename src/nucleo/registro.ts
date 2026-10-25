@@ -9,7 +9,7 @@ export interface NucleoLocale {
   creato_il: string;
   modalita: 'locale' | 'drive' | 'locale_drive';
   /** File del nucleo su Google Drive, quando è collegato a un account. */
-  drive?: { cartella: string; dati: string; storico: string; chiave: string };
+  drive?: { cartella: string; dati: string; storico: string; chiave: string; foto?: string };
 }
 
 const CHIAVE_NUCLEI = 'masterfood:nuclei';
