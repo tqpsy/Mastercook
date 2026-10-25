@@ -4,7 +4,6 @@
  * Servono a proporzioni tra i membri, non a prescrivere una dieta.
  * Se il sesso non è indicato si usa la media tra maschi e femmine della stessa età.
  */
-import { differenzaGiorni } from './date';
 import type { DataLocale } from './tipi';
 
 export type Sesso = 'maschio' | 'femmina';
@@ -46,9 +45,16 @@ const SUPPLEMENTO: Record<Condizione, Fabbisogno> = {
   allattamento: f(500, 21, -7), // ferro: PRI 11 mg in allattamento
 };
 
-export function etaInAnni(dataNascita: DataLocale, oggi: DataLocale): number {
-  const anni = Number(oggi.slice(0, 4)) - Number(dataNascita.slice(0, 4));
-  return oggi.slice(5) < dataNascita.slice(5) ? anni - 1 : anni;
+/** Anno di nascita del profilo; i vecchi profili avevano la data intera. */
+export function annoNascita(m: { anno_nascita?: number; data_nascita?: DataLocale }): number | undefined {
+  if (m.anno_nascita) return m.anno_nascita;
+  const anno = m.data_nascita ? Number(m.data_nascita.slice(0, 4)) : NaN;
+  return Number.isFinite(anno) ? anno : undefined;
+}
+
+/** Età compiuta quest'anno: per le fasce LARN basta l'anno, il giorno esatto non serve. */
+export function etaDaAnno(anno: number, oggi: DataLocale): number {
+  return Number(oggi.slice(0, 4)) - anno;
 }
 
 /** Gravidanza e allattamento hanno senso solo per le donne in età fertile. */
@@ -80,6 +86,7 @@ export function fattoreDaFabbisogno(fabbisogno: Fabbisogno): number {
 }
 
 interface ProfiloPorzione {
+  anno_nascita?: number;
   data_nascita?: DataLocale;
   sesso?: Sesso;
   condizione?: Condizione;
@@ -87,10 +94,11 @@ interface ProfiloPorzione {
   fattore_porzione?: number;
 }
 
-/** Porzione effettiva: calcolata dai fabbisogni se c'è la data di nascita e non è stata scelta a mano. */
+/** Porzione effettiva: calcolata dai fabbisogni se c'è l'anno di nascita e non è stata scelta a mano. */
 export function porzioneEffettiva(m: ProfiloPorzione, oggi: DataLocale): number {
-  if (m.porzione_automatica !== false && m.data_nascita && differenzaGiorni(m.data_nascita, oggi) >= 0) {
-    return fattoreDaFabbisogno(calcolaFabbisogno(etaInAnni(m.data_nascita, oggi), m.sesso, m.condizione));
+  const anno = annoNascita(m);
+  if (m.porzione_automatica !== false && anno !== undefined && etaDaAnno(anno, oggi) >= 0) {
+    return fattoreDaFabbisogno(calcolaFabbisogno(etaDaAnno(anno, oggi), m.sesso, m.condizione));
   }
   return m.fattore_porzione ?? 1;
 }

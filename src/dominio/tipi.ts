@@ -36,6 +36,9 @@ export interface Membro extends MetadatiComuni {
   utente_id?: string;
   gestito_da?: MembroId;
   nome: string;
+  /** Basta l'anno: serve solo per i fabbisogni per età (LARN). */
+  anno_nascita?: number;
+  /** Vecchi profili: si converte in anno_nascita alla prima apertura e poi si toglie. */
   data_nascita?: DataLocale;
   /** Facoltativo, serve solo per i fabbisogni LARN; se manca si usa la media per età. */
   sesso?: Sesso;
@@ -46,9 +49,9 @@ export interface Membro extends MetadatiComuni {
   escludi_tracce: boolean;
   restrizioni: Restrizione[];
   preferenze: { graditi: string[]; sgraditi: string[] };
-  /** Adulto 1,0; da 0,3 a 1,8. Scelta a mano, o di riserva se manca la data di nascita. */
+  /** Adulto 1,0; da 0,3 a 1,8. Scelta a mano, o di riserva se manca l'anno di nascita. */
   fattore_porzione: number;
-  /** Se non è false e c'è la data di nascita, la porzione si calcola dai fabbisogni. */
+  /** Se non è false e c'è l'anno di nascita, la porzione si calcola dai fabbisogni. */
   porzione_automatica?: boolean;
   attivo: boolean;
 }

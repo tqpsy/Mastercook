@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { ALLERGENI_UE, CODICI_ALLERGENI, type Allergene } from '../dominio/allergeni';
 import {
   calcolaFabbisogno,
-  etaInAnni,
+  annoNascita,
+  etaDaAnno,
   fattoreDaFabbisogno,
   puoAvereCondizione,
   type Condizione,
@@ -73,7 +74,9 @@ export function ModuloMembro({
   const [consenso, setConsenso] = useState(!chiediConsenso || iniziale.allergie.length > 0);
   const servoConsenso = chiediConsenso && (dati.allergie.length > 0 || dati.intolleranze.length > 0 || !!dati.condizione);
   const oggi = dataLocale();
-  const eta = dati.data_nascita && dati.data_nascita <= oggi ? etaInAnni(dati.data_nascita, oggi) : undefined;
+  const annoOggi = Number(oggi.slice(0, 4));
+  const anno = annoNascita(dati);
+  const eta = anno !== undefined && anno >= 1900 && anno <= annoOggi ? etaDaAnno(anno, oggi) : undefined;
   const conCondizione = puoAvereCondizione(dati.sesso, eta);
   const fabbisogno = eta !== undefined ? calcolaFabbisogno(eta, dati.sesso, conCondizione ? dati.condizione : undefined) : undefined;
   const automatica = !!fabbisogno && dati.porzione_automatica !== false;
@@ -87,6 +90,9 @@ export function ModuloMembro({
     onInvia({
       ...dati,
       nome: dati.nome.trim(),
+      // Solo l'anno: la data completa non serve e non si conserva.
+      anno_nascita: eta !== undefined ? anno : undefined,
+      data_nascita: undefined,
       condizione: conCondizione ? dati.condizione : undefined,
       // Tiene un valore di riserva coerente anche per chi legge solo fattore_porzione.
       fattore_porzione: automatica ? fattoreDaFabbisogno(fabbisogno) : dati.fattore_porzione,
@@ -102,8 +108,17 @@ export function ModuloMembro({
       </label>
 
       <label className="campo">
-        <span>Data di nascita (facoltativa)</span>
-        <input type="date" value={dati.data_nascita ?? ''} max={oggi} onChange={(e) => aggiorna({ data_nascita: e.target.value || undefined })} />
+        <span>Anno di nascita (facoltativo)</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1900}
+          max={annoOggi}
+          placeholder={`Es. ${annoOggi - 35}`}
+          value={anno ?? ''}
+          onChange={(e) => aggiorna({ anno_nascita: e.target.value ? Number(e.target.value) : undefined, data_nascita: undefined })}
+        />
+        <small>Basta l’anno: serve solo per le porzioni giuste per l’età.</small>
       </label>
 
       <fieldset className="campo">
@@ -152,7 +167,7 @@ export function ModuloMembro({
         <small>
           {fabbisogno
             ? `Fabbisogno indicativo (LARN): circa ${formattaNumero(fabbisogno.energia_kcal)} kcal, ${fabbisogno.proteine_g} g di proteine e ${fabbisogno.ferro_mg} mg di ferro al giorno. Serve a calcolare le quantità delle ricette e della spesa.`
-            : 'Serve a calcolare le quantità delle ricette e della spesa. Con la data di nascita la calcoliamo noi dai fabbisogni per età e sesso.'}
+            : 'Serve a calcolare le quantità delle ricette e della spesa. Con l’anno di nascita la calcoliamo noi dai fabbisogni per età e sesso.'}
         </small>
       </fieldset>
 
