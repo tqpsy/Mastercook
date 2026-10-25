@@ -44,6 +44,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Avvisi di scadenza: sincronizzazione periodica e tocco sulla notifica.
+        importScripts: ['avvisi-sw.js'],
         navigateFallback: `${base}index.html`,
         runtimeCaching: [
           {

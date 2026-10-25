@@ -8,6 +8,7 @@ import {
   type Condizione,
   type Sesso,
 } from '../dominio/fabbisogni';
+import { emojiMembro } from '../dominio/emojiMembro';
 import { formattaNumero } from '../dominio/formato';
 import { dataLocale } from '../dominio/id';
 import type { Restrizione } from '../dominio/tipi';
@@ -110,7 +111,7 @@ export function ModuloMembro({
         <div className="chips">
           {SESSI.map((x) => (
             <Chip key={x.nome} attivo={dati.sesso === x.id} onClick={() => aggiorna({ sesso: x.id })}>
-              {x.nome}
+              {emojiMembro({ ...dati, sesso: x.id }, oggi)} {x.nome}
             </Chip>
           ))}
         </div>

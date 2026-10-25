@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { emojiMembro } from '../../dominio/emojiMembro';
 import { Link } from 'react-router-dom';
 import { Chip, Vuoto } from '../../componenti/ui';
 import { normalizza } from '../../dominio/ricerca';
@@ -52,7 +53,7 @@ export function SceltaPresenti() {
               scegliPresenti(nuovi.length === membri.length ? null : nuovi.length ? nuovi : attivi);
             }}
           >
-            {m.nome}
+            {emojiMembro(m)} {m.nome}
           </Chip>
         ))}
       </div>

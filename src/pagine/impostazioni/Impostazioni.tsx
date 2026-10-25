@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { emojiMembro } from '../../dominio/emojiMembro';
+import { AvvisiScadenza } from '../../componenti/AvvisiScadenza';
 import { Link } from 'react-router-dom';
 import * as Y from 'yjs';
 import { Installazione } from '../../componenti/Installazione';
@@ -97,7 +99,7 @@ export function Impostazioni() {
             <li key={m.id}>
               <Link className="voce" to={`/impostazioni/membri/${m.id}`}>
                 <span className="emoji" aria-hidden="true">
-                  {m.fattore_porzione < 1 ? '🧒' : '🧑'}
+                  {emojiMembro(m)}
                 </span>
                 <span className="voce-testo">
                   <span className="voce-titolo">
@@ -121,7 +123,7 @@ export function Impostazioni() {
             <select value={nucleo.membroId} onChange={(e) => scegliMembro(nucleo.nucleo.id, e.target.value)}>
               {membri.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.nome}
+                  {emojiMembro(m)} {m.nome}
                 </option>
               ))}
             </select>
@@ -129,6 +131,8 @@ export function Impostazioni() {
           </label>
         )}
       </div>
+
+      <AvvisiScadenza />
 
       <SceltaTema />
 
