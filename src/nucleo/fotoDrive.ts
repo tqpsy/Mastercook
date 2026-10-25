@@ -4,7 +4,7 @@
  * modificata per ultima. Senza token valido non fa nulla: ci pensa il ciclo successivo.
  */
 import { create } from 'zustand';
-import { MASSIMO_FOTO, leggiZona, salvaZona, type FotoSalvata } from '../piattaforma/archivioFoto';
+import { MASSIMO_FOTO, leggiZona, salvaZona, type FotoSalvata, type Visto } from '../piattaforma/archivioFoto';
 import { cifraFile, decifraFile } from '../piattaforma/cifratura';
 import { aggiornaFile, scaricaFile, versioneFile } from '../piattaforma/drive';
 import { tokenValido } from '../piattaforma/google';
@@ -17,6 +17,8 @@ interface FotoNelFile {
   id: string;
   il: string;
   jpeg: string;
+  visti?: Visto[];
+  esito?: 'ok' | 'errore';
 }
 interface FileFoto {
   versione: 1;
@@ -71,11 +73,11 @@ async function giroFoto(nucleoId: string): Promise<string[]> {
     const locale = locali[zona]!;
     const suDrive = remoto.contenuto.zone[zona];
     if (suDrive && (!locale.aggiornata || suDrive.aggiornata > locale.aggiornata)) {
-      const foto: FotoSalvata[] = suDrive.foto.map((f) => ({ id: f.id, il: f.il, blob: daBase64(f.jpeg) }));
+      const foto: FotoSalvata[] = suDrive.foto.map((f) => ({ id: f.id, il: f.il, blob: daBase64(f.jpeg), visti: f.visti, esito: f.esito }));
       await salvaZona(nucleoId, zona, foto, suDrive.aggiornata);
       cambiate.push(zona);
     } else if (locale.aggiornata && (!suDrive || locale.aggiornata > suDrive.aggiornata)) {
-      const foto = await Promise.all(locale.foto.slice(-MASSIMO_FOTO).map(async (f) => ({ id: f.id, il: f.il, jpeg: await inBase64(f.blob) })));
+      const foto = await Promise.all(locale.foto.slice(-MASSIMO_FOTO).map(async (f) => ({ id: f.id, il: f.il, jpeg: await inBase64(f.blob), visti: f.visti, esito: f.esito })));
       nuovo.zone[zona] = { aggiornata: locale.aggiornata, foto };
       daCaricare = true;
     }

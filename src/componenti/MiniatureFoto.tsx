@@ -4,6 +4,9 @@ import { Foglio } from './ui';
 export interface Miniatura {
   id: string;
   url: string;
+  /** Breve stato mostrato sulla foto (es. "5 prodotti"). */
+  etichetta?: string;
+  avviso?: boolean;
 }
 
 /** Griglia di foto con numero, ingrandimento al tocco e × per toglierne una. */
@@ -22,6 +25,7 @@ export function MiniatureFoto({ foto, descrizione, onTogli }: { foto: Miniatura[
             <span className="numero-foto" aria-hidden="true">
               {i + 1}
             </span>
+            {f.etichetta && <span className={`etichetta-foto${f.avviso ? ' avviso' : ''}`}>{f.etichetta}</span>}
             <button type="button" className="togli-foto" onClick={() => onTogli(f.id)} aria-label={`Togli ${descrizione} ${i + 1}`}>
               ×
             </button>
