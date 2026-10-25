@@ -5,7 +5,7 @@
  */
 import { leggiChiave } from './chiaviApi';
 import { create } from 'zustand';
-import { attesaDaErrore, eQuotaGiornaliera, impostaLimite, limiteDaErrore, MODELLI_GEMINI, modelloEsaurito, quotaEsaurita, registraRichiesta, segnaEsaurita } from './quotaGemini';
+import { attesaDaErrore, eQuotaGiornaliera, impostaLimiteModello, limiteDaErrore, MODELLI_GEMINI, modelloEsaurito, quotaEsaurita, registraRichiesta, segnaEsaurita } from './quotaGemini';
 
 export interface ProdottoVisto {
   nome: string;
@@ -80,8 +80,8 @@ async function chiediJsonOra(parti: Parte[]): Promise<unknown> {
       if (r.status === 429) {
         const corpo = await r.text().catch(() => '');
         if (eQuotaGiornaliera(corpo)) {
-          const limite = modello === MODELLI_GEMINI[0] ? limiteDaErrore(corpo) : null;
-          if (limite) impostaLimite(limite);
+          const limite = limiteDaErrore(corpo);
+          if (limite) impostaLimiteModello(modello, limite);
           segnaEsaurita(modello);
           finitaOggi = true;
           break;
