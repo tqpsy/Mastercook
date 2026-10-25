@@ -84,15 +84,17 @@ const voceDa = (invito: Invito, membroId: string): VoceArchivio => ({
 
 /**
  * Vero se chi è invitato può leggere la copia condivisa su Firebase: allora entra senza altri passaggi.
- * Falso se Firebase non è configurato, non risponde, o il nucleo non c'è ancora (chi ha invitato usa
+ * Altrimenti il motivo, se Firebase non è configurato, non risponde, o il nucleo non c'è ancora (chi ha invitato usa
  * una versione vecchia dell'app): si passa ai file di Drive.
  */
-export async function accessoCopiaCondivisa(invito: Invito): Promise<boolean> {
-  if (!relayConfigurato()) return false;
+export async function accessoCopiaCondivisa(invito: Invito): Promise<true | string> {
+  if (!relayConfigurato()) return 'non configurata';
   try {
-    return (await depositoRelay.versione(fileRelay(invito.n, 'dati'))) !== '';
-  } catch {
-    return false;
+    if ((await depositoRelay.versione(fileRelay(invito.n, 'dati'))) !== '') return true;
+    return `${invito.da} deve prima aprire l’app aggiornata sul suo telefono, con questa email tra gli invitati`;
+  } catch (e) {
+    if (e instanceof ErroreDrive && e.stato === 404) return `${invito.da} deve prima aprire l’app aggiornata sul suo telefono, con questa email tra gli invitati`;
+    return e instanceof Error ? e.message : 'errore sconosciuto';
   }
 }
 

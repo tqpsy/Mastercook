@@ -95,6 +95,11 @@ export function Sincronizzazione() {
               {sync.messaggio ? ` ${sync.messaggio}` : ''}
             </p>
             {email && <p className="testo-tenue piccolo">Account: {email}</p>}
+            {sync.relay && (
+              <p className={sync.relay === 'ok' ? 'testo-tenue piccolo' : 'esito-errore'}>
+                {sync.relay === 'ok' ? '✓ Copia per i familiari attiva: chi inviti entra con il solo accesso Google.' : `Copia per i familiari non attiva: ${sync.relay}.`}
+              </p>
+            )}
             <div className="azioni">
               {sync.stato === 'pausa' || !email ? (
                 <BottoneGoogle

@@ -32,6 +32,8 @@ interface Sync {
   richiesta: number;
   /** Quante schermate chiedono il ritmo veloce (modalità supermercato). */
   veloce: number;
+  /** Copia condivisa su Firebase: 'ok' o il motivo per cui non va; assente se non si usa. */
+  relay?: string;
 }
 
 export const useSync = create<Sync>(() => ({ stato: 'spento', richiesta: 0, veloce: 0 }));
@@ -161,7 +163,15 @@ export function MotoreSync() {
           await sincronizzaDocumento(storico, fileRelay(nucleo.id, 'storico'), chiave, remotiRelay.storico, depositoRelay);
         };
         // Per chi ha creato il nucleo Drive resta la copia principale: un problema di Firebase non lo ferma.
-        if (conRelay) await (file.relay ? viaRelay() : viaRelay().catch(() => undefined));
+        if (conRelay) {
+          try {
+            await viaRelay();
+            useSync.setState({ relay: 'ok' });
+          } catch (e) {
+            useSync.setState({ relay: e instanceof Error ? e.message : 'errore sconosciuto' });
+            if (file.relay) throw e;
+          }
+        }
         nonTrovato = 0;
         // Le foto seguono i dati, ma un loro problema non ferma la sincronizzazione.
         if (!soloDati) {
