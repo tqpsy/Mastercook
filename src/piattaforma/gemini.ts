@@ -8,6 +8,8 @@ import { leggiChiave } from './chiaviApi';
 export interface ProdottoVisto {
   nome: string;
   quantita?: string;
+  /** Solo per il frigo: dove si trova il prodotto (vedi POSIZIONI_FRIGO). */
+  posizione?: string;
 }
 
 const MODELLI = ['gemini-2.5-flash', 'gemini-flash-latest'];
@@ -15,8 +17,13 @@ const ISTRUZIONI =
   'Elenca gli alimenti visibili in questa foto di un frigorifero, di un freezer o di una dispensa (può essere un solo ripiano, un cassetto o la portiera). ' +
   'Usa nomi generici in italiano (es. "latte", "uova", "zucchine", non le marche) e una stima della quantità visibile. ' +
   'Rispondi solo con JSON: [{"nome": string, "quantita": string}]. Se non vedi alimenti rispondi [].';
+const ISTRUZIONI_FRIGO =
+  'Elenca gli alimenti visibili in questa foto di un frigorifero (può essere un solo ripiano, un cassetto o la portiera). ' +
+  'Usa nomi generici in italiano (es. "latte", "uova", "petto di pollo", non le marche) e una stima della quantità visibile. ' +
+  'Per ognuno indica dove si trova: "ripiano alto", "ripiano centrale", "ripiano basso" (quello più in basso, sopra i cassetti), "cassetto" o "portiera"; ' +
+  'se non si capisce usa "non so". Rispondi solo con JSON: [{"nome": string, "quantita": string, "posizione": string}]. Se non vedi alimenti rispondi [].';
 
-export async function riconosciProdotti(canvas: HTMLCanvasElement): Promise<ProdottoVisto[]> {
+export async function riconosciProdotti(canvas: HTMLCanvasElement, frigo = false): Promise<ProdottoVisto[]> {
   const chiave = leggiChiave('gemini');
   if (!chiave) throw new Error('chiave');
   const data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
@@ -25,7 +32,7 @@ export async function riconosciProdotti(canvas: HTMLCanvasElement): Promise<Prod
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': chiave },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: ISTRUZIONI }, { inline_data: { mime_type: 'image/jpeg', data } }] }],
+        contents: [{ parts: [{ text: frigo ? ISTRUZIONI_FRIGO : ISTRUZIONI }, { inline_data: { mime_type: 'image/jpeg', data } }] }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
       }),
     });
