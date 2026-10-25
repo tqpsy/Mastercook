@@ -10,8 +10,32 @@ import { useNucleo } from '../../nucleo/contesto';
 import { useMembri } from '../../nucleo/derivati';
 import { rimuoviNucleoLocale, salvaNucleoLocale } from '../../nucleo/registro';
 import { useSessione } from '../../stato/sessione';
+import { useTema, type Tema } from '../../stato/tema';
 import { ChiaveApi } from '../../componenti/ChiaveApi';
 import { cercaAggiornamento, type EsitoAggiornamento } from '../../piattaforma/aggiornamento';
+
+const TEMI: { id: Tema; nome: string }[] = [
+  { id: 'auto', nome: 'Automatico' },
+  { id: 'chiaro', nome: 'Chiaro' },
+  { id: 'scuro', nome: 'Scuro' },
+];
+
+function SceltaTema() {
+  const { tema, scegliTema } = useTema();
+  return (
+    <div className="sezione">
+      <h2>Tema</h2>
+      <div className="sottoschede" role="radiogroup" aria-label="Tema dell’app">
+        {TEMI.map((t) => (
+          <button key={t.id} type="button" role="radio" aria-checked={tema === t.id} className={tema === t.id ? 'attiva' : ''} onClick={() => scegliTema(t.id)}>
+            {t.nome}
+          </button>
+        ))}
+      </div>
+      <p className="testo-tenue piccolo">Automatico segue il tema del telefono.</p>
+    </div>
+  );
+}
 
 function scaricaBackup(nome: string, dati: Y.Doc, storico: Y.Doc) {
   const contenuto = {
@@ -105,6 +129,8 @@ export function Impostazioni() {
           </label>
         )}
       </div>
+
+      <SceltaTema />
 
       <Sincronizzazione />
       <ChiaveApi />

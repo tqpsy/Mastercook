@@ -29,8 +29,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Tema scuro: segue il telefono, salvo scelta diversa in Impostazioni (data-tema su <html>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema='chiaro']) {
     --sfondo: #171812;
     --superficie: #212219;
     --superficie-2: #2a2b21;
@@ -50,6 +51,27 @@
     --ombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
     color-scheme: dark;
   }
+}
+
+:root[data-tema='scuro'] {
+  --sfondo: #171812;
+  --superficie: #212219;
+  --superficie-2: #2a2b21;
+  --testo: #ece8dc;
+  --tenue: #aaa594;
+  --linea: #34352a;
+  --oliva: #a7bf6e;
+  --oliva-scura: #c3d692;
+  --oliva-tenue: #2a3220;
+  --terracotta: #e2835a;
+  --terracotta-tenue: #3a261d;
+  --ocra: #e3b45a;
+  --ocra-tenue: #342a17;
+  --rosso: #ef7f6e;
+  --rosso-tenue: #3a201c;
+  --su-colore: #171812;
+  --ombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+  color-scheme: dark;
 }
 
 * {
