@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { leggiChiave } from '../piattaforma/chiaviApi';
 import { usePausaGemini } from '../piattaforma/gemini';
-import { impostaLimite, inRiserva, oraAzzeramento, ricaricaQuota, useQuotaGemini } from '../piattaforma/quotaGemini';
+import { impostaLimite, MODELLI_GEMINI, modelloInUso, NOMI_MODELLI, oraAzzeramento, ricaricaQuota, useQuotaGemini } from '../piattaforma/quotaGemini';
 
 /** Il messaggio per chi ha finito la prova gratuita del giorno. */
 export const messaggioQuotaFinita = () =>
@@ -13,8 +13,9 @@ export const messaggioQuotaFinita = () =>
  */
 export function QuotaGemini({ modificabile = false }: { modificabile?: boolean }) {
   const stato = useQuotaGemini();
-  const { usate, limite, esaurita } = stato;
-  const riserva = inRiserva(stato);
+  const { limite, esaurita } = stato;
+  const inUso = modelloInUso(stato);
+  const ultimo = inUso.numero === MODELLI_GEMINI.length;
   const pausaFino = usePausaGemini((p) => p.fino);
   const [adesso, setAdesso] = useState(() => Date.now());
   const [modifica, setModifica] = useState(false);
@@ -31,36 +32,41 @@ export function QuotaGemini({ modificabile = false }: { modificabile?: boolean }
     return () => clearInterval(t);
   }, [pausaFino]);
   if (!leggiChiave('gemini')) return null;
-  const rimaste = esaurita ? 0 : Math.max(0, limite - usate);
-  const quota = Math.min(1, esaurita ? 1 : usate / limite);
+  // La barra è del modello in uso: piena, si passa al successivo.
+  const quota = esaurita ? 1 : Math.min(1, inUso.usate / inUso.limite);
+  const percentuale = Math.round(quota * 100);
   return (
     <div className="riquadro quota-gemini">
       <div className="quota-gemini-testa">
-        <span>Prova gratuita di Gemini oggi</span>
-        <strong>{esaurita ? 'Terminata' : riserva ? 'Modello di riserva' : rimaste === 0 ? 'Quasi finita' : `${rimaste === 1 ? 'resta 1 analisi' : `restano ${rimaste} analisi`}`}</strong>
+        <span>
+          Gemini oggi · modello {inUso.numero} di {MODELLI_GEMINI.length}
+        </span>
+        <strong>{esaurita ? 'Terminata' : `${percentuale}% usato`}</strong>
       </div>
       <div
         className={`progresso${quota >= 1 ? ' pieno' : quota >= 0.75 ? ' quasi' : ''}`}
         role="meter"
-        aria-label="Analisi Gemini usate oggi"
+        aria-label={`Analisi usate oggi con il modello ${inUso.numero} di ${MODELLI_GEMINI.length}`}
         aria-valuemin={0}
-        aria-valuemax={limite}
-        aria-valuenow={Math.min(usate, limite)}
-        aria-valuetext={`${Math.min(usate, limite)} di ${limite}`}
+        aria-valuemax={inUso.limite}
+        aria-valuenow={Math.min(inUso.usate, inUso.limite)}
+        aria-valuetext={`${percentuale}%, ${Math.min(inUso.usate, inUso.limite)} di ${inUso.limite}`}
       >
-        <span style={{ width: `${Math.round(quota * 100)}%` }} />
+        <span style={{ width: `${percentuale}%` }} />
       </div>
       {pausaFino && (
         <p className="piccolo" role="status">
           Gemini chiede una breve pausa (limite al minuto): riprendo da solo tra {Math.min(60, Math.max(1, Math.ceil((pausaFino - adesso) / 1000)))} s.
         </p>
       )}
-      {riserva && (
-        <p className="piccolo">Finite per oggi le analisi del modello principale: continuo con uno più leggero, sempre gratis.</p>
-      )}
       <p className="testo-tenue piccolo">
-        {Math.min(usate, limite)} di circa {limite} usate su questo telefono · si azzera alle {oraAzzeramento()}.
-        {modificabile && !modifica && (
+        {esaurita
+          ? `Finite le analisi gratuite di tutti i modelli. `
+          : `${NOMI_MODELLI[inUso.modello] ?? inUso.modello}: ${Math.min(inUso.usate, inUso.limite)} di circa ${inUso.limite} analisi. ${
+              ultimo ? 'È l’ultimo modello disponibile. ' : `Poi passo da solo al modello ${inUso.numero + 1}. `
+            }`}
+        Si azzera tutto alle {oraAzzeramento()}.
+        {modificabile && !modifica && inUso.numero === 1 && (
           <>
             {' '}
             <button type="button" className="link" onClick={() => setModifica(true)}>

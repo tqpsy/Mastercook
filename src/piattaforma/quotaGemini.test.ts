@@ -13,7 +13,7 @@ globalThis.localStorage ??= {
   },
 };
 
-const { attesaDaErrore, eQuotaGiornaliera, giornoGoogle, impostaLimite, inRiserva, limiteDaErrore, MODELLI_GEMINI, modelloEsaurito, prossimoAzzeramento, quotaEsaurita, registraRichiesta, segnaEsaurita, useQuotaGemini } =
+const { attesaDaErrore, eQuotaGiornaliera, giornoGoogle, impostaLimite, impostaLimiteModello, limiteDaErrore, MODELLI_GEMINI, modelloEsaurito, modelloInUso, prossimoAzzeramento, quotaEsaurita, registraRichiesta, segnaEsaurita, useQuotaGemini } =
   await import('./quotaGemini');
 
 describe('prova gratuita di Gemini', () => {
@@ -37,10 +37,23 @@ describe('prova gratuita di Gemini', () => {
     segnaEsaurita();
     // Finito il modello principale si continua con quelli di riserva.
     expect(quotaEsaurita()).toBe(false);
-    expect(inRiserva(useQuotaGemini.getState())).toBe(true);
+    expect(modelloInUso(useQuotaGemini.getState()).numero).toBe(2);
     expect(useQuotaGemini.getState().usate).toBe(5);
     for (const m of MODELLI_GEMINI) segnaEsaurita(m);
     expect(quotaEsaurita()).toBe(true);
+  });
+
+  it('mostra il consumo del modello in uso, con il suo numero', () => {
+    impostaLimite(10);
+    for (let i = 0; i < 4; i++) registraRichiesta();
+    expect(modelloInUso(useQuotaGemini.getState())).toMatchObject({ numero: 1, usate: 4, limite: 10 });
+    segnaEsaurita();
+    segnaEsaurita(MODELLI_GEMINI[1]);
+    impostaLimiteModello(MODELLI_GEMINI[2]!, 50);
+    registraRichiesta(MODELLI_GEMINI[2]);
+    expect(modelloInUso(useQuotaGemini.getState())).toMatchObject({ modello: 'gemini-2.5-flash-lite', numero: 3, usate: 1, limite: 50 });
+    // Il limite del principale non cambia con quello dei modelli di riserva.
+    expect(useQuotaGemini.getState().limite).toBe(10);
   });
 
   it('un vecchio «prova finita» vale solo per il modello principale', () => {
