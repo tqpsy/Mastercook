@@ -31,7 +31,7 @@ describe('proponiPasto', () => {
     expect(p.portate[0]!.porzioni).toBe(1);
     // L'olio resta una voce a parte.
     expect(p.portate.at(-1)!.ricetta).toBeUndefined();
-    expect(p.portate.at(-1)!.titolo).toBe('Olio 10 g');
+    expect(p.portate.at(-1)!.titolo).toBe('Olio 10 ml');
   });
 
   it('pesce e verdura: niente carne, e la verdura come contorno', () => {
@@ -62,7 +62,7 @@ describe('proponiPasto', () => {
   it('colazione senza ricette adatte: restano le voci della dieta', () => {
     const colazione = leggiDietaDaTesto('Colazione: latte 200 ml + fette biscottate 30 g').giorni[0]!.pasti[0]!;
     const p = proponiPasto(colazione, RICETTE_SISTEMA, contesto(), { usate: new Map() });
-    expect(p.portate.map((x) => x.titolo)).toEqual(['Latte 200 g', 'Fette biscottate 30 g']);
+    expect(p.portate.map((x) => x.titolo)).toEqual(['Latte 200 ml', 'Fette biscottate 30 g']);
   });
 });
 

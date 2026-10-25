@@ -170,8 +170,14 @@ export function gruppiVoce(voce: VoceDieta): GruppoAlimentare[] {
   return [...gruppi];
 }
 
+/** "200 ml" per latte e bevande, "80 g" per il resto. */
+export function quantitaVoce(voce: VoceDieta): string | undefined {
+  if (voce.quantita_g) return `${voce.quantita_g} ${ingrediente(voce.ingrediente_id)?.unita === 'ml' ? 'ml' : 'g'}`;
+  return voce.quantita;
+}
+
 export function descriviVoce(voce: VoceDieta): string {
-  const quantita = voce.quantita_g ? `${voce.quantita_g} g` : voce.quantita;
+  const quantita = quantitaVoce(voce);
   const alternative = voce.alternative?.length ? ` (o ${voce.alternative.join(', o ')})` : '';
   return `${voce.testo}${alternative}${quantita ? ` ${quantita}` : ''}`;
 }

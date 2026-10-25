@@ -3,7 +3,7 @@
  * registra l'autore; la dieta è un dato relativo alla salute e resta nel documento cifrato del nucleo.
  */
 import { aggiungiGiorni } from '../dominio/date';
-import type { DietaLetta } from '../dominio/dieta';
+import { quantitaVoce, type DietaLetta } from '../dominio/dieta';
 import { idDieta, idPasto, idPiano, type TipoPasto } from '../dominio/id';
 import { fabbisognoMenu } from '../dominio/menu';
 import type { PortataProposta, PastoProposto } from '../dominio/menuDieta';
@@ -77,7 +77,7 @@ function scriviPasto(ctx: Ctx, data: DataLocale, tipo: TipoPasto, aggiorna: (p: 
 }
 
 function portataDaProposta(s: PortataProposta, membroId: MembroId): PortataPianificata {
-  const nota = s.voci.map((v) => (v.quantita_g ? `${v.testo} ${v.quantita_g} g` : v.quantita ? `${v.testo} ${v.quantita}` : v.testo)).join(', ');
+  const nota = s.voci.map((v) => [v.testo, quantitaVoce(v)].filter(Boolean).join(' ')).join(', ');
   const voce = !s.ricetta && s.voci.length === 1 ? s.voci[0] : undefined;
   return {
     ...(s.ricetta ? { ricetta_id: s.ricetta.id } : {}),
