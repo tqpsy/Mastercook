@@ -11,6 +11,7 @@ import { useMembri } from '../../nucleo/derivati';
 import { rimuoviNucleoLocale, salvaNucleoLocale } from '../../nucleo/registro';
 import { useSessione } from '../../stato/sessione';
 import { ChiaveApi } from '../../componenti/ChiaveApi';
+import { cercaAggiornamento, type EsitoAggiornamento } from '../../piattaforma/aggiornamento';
 
 function scaricaBackup(nome: string, dati: Y.Doc, storico: Y.Doc) {
   const contenuto = {
@@ -137,14 +138,53 @@ export function Impostazioni() {
       <div className="sezione">
         <h2>Informazioni</h2>
         <p className="testo-tenue piccolo">
-          Masterfood {__VERSIONE_APP__}. Dati dei prodotti da{' '}
+          Masterfood, versione {__VERSIONE_APP__}. Dati dei prodotti da{' '}
           <a href="https://world.openfoodfacts.org" target="_blank" rel="noreferrer">
             Open Food Facts
           </a>{' '}
           (licenza ODbL). Le regole di conservazione seguono Ministero della Salute, USDA ed EFSA e sono in fase di revisione da parte di un
           dietista: nel dubbio, vale sempre l’etichetta.
         </p>
+        <BottoneAggiorna />
       </div>
     </section>
+  );
+}
+
+const TESTI_ESITO: Record<EsitoAggiornamento, string> = {
+  aggiornata: 'Hai già l’ultima versione.',
+  in_arrivo: 'Scarico la nuova versione: l’app si riapre da sola…',
+  offline: 'Sei offline: riprova quando torna la connessione.',
+};
+
+function BottoneAggiorna() {
+  const [inCorso, setInCorso] = useState(false);
+  const [esito, setEsito] = useState<string | null>(null);
+  return (
+    <div className="azioni colonna">
+      <button
+        type="button"
+        className="bottone secondario"
+        disabled={inCorso}
+        onClick={async () => {
+          setInCorso(true);
+          setEsito(null);
+          try {
+            setEsito(TESTI_ESITO[await cercaAggiornamento()]);
+          } catch {
+            setEsito('Non riesco a controllare gli aggiornamenti adesso: riprova tra poco.');
+          } finally {
+            setInCorso(false);
+          }
+        }}
+      >
+        {inCorso ? 'Cerco aggiornamenti…' : 'Aggiorna versione'}
+      </button>
+      {esito && (
+        <p role="status" className="testo-tenue piccolo">
+          {esito}
+        </p>
+      )}
+    </div>
   );
 }
