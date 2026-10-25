@@ -52,6 +52,9 @@ export function Benvenuto() {
         <p className="testo-tenue piccolo">
           Nessuna registrazione necessaria per provarla: si parte su questo dispositivo, l’accesso con Google si aggiunge quando vuoi.
         </p>
+        <a className="piccolo" href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noreferrer">
+          Privacy e termini
+        </a>
       </main>
     );
   }

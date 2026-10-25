@@ -21,6 +21,8 @@ const DESCRIZIONE: Record<StatoSync, string> = {
 
 export function messaggioErroreGoogle(e: unknown): string {
   const testo = e instanceof Error ? e.message : '';
+  if (/permessi_mancanti/.test(testo))
+    return 'Non hai spuntato le caselle di Google Drive, quindi Masterfood non può salvare i dati. Riprova e, nella schermata di Google, spunta «Seleziona tutto».';
   if (/popup_closed|negato|access_denied/i.test(testo)) return 'Accesso annullato: per salvare su Drive serve il permesso di Google.';
   if (/popup_failed/i.test(testo)) return 'Il browser ha bloccato la finestra di Google: consenti i popup per questo sito e riprova.';
   if (/rete|Failed to fetch/i.test(testo)) return 'Non riesco a contattare Google: controlla la connessione.';

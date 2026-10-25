@@ -1234,7 +1234,7 @@ fieldset.campo {
 .guida {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 25; /* sotto i fogli (30), sopra barre e intestazione */
   overflow-y: auto;
   background: var(--sfondo);
 }
@@ -1441,4 +1441,20 @@ fieldset.campo {
 /* Nessuna barra in basso qui: l'avviso scende a filo dello schermo. */
 .modo-spesa .avviso-flottante {
   bottom: calc(env(safe-area-inset-bottom) + 16px);
+}
+
+/* Spiegazione prima della schermata di consenso di Google. */
+.spiegazione-google {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.spiegazione-google ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
