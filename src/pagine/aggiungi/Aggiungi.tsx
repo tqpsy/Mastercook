@@ -3,9 +3,9 @@ import { IconaCodice, IconaFotocamera, IconaMatita, IconaScontrino } from '../..
 
 const AZIONI = [
   { a: '/aggiungi/codice', icona: IconaCodice, nome: 'Scansiona il codice a barre', descrizione: 'Il modo più veloce: nome, formato e allergeni arrivano da Open Food Facts.' },
-  { a: '/aggiungi/scontrino', icona: IconaScontrino, nome: 'Fotografa lo scontrino', descrizione: 'Letto sul telefono, la foto non viene salvata. Controlli tu le righe prima di aggiungerle.' },
+  { a: '/aggiungi/scontrino', icona: IconaScontrino, nome: 'Scontrino', descrizione: 'Fotografalo, anche in più parti, o inquadra il QR code. Letto sul telefono; controlli tu le righe prima di aggiungerle.' },
   { a: '/aggiungi/mano', icona: IconaMatita, nome: 'Aggiungi a mano', descrizione: 'Cerca un ingrediente e indica quantità e scadenza.' },
-  { a: '/aggiungi/foto', icona: IconaFotocamera, nome: 'Foto di frigo o dispensa', descrizione: 'Tieni una foto aggiornata di cosa c’è; il riconoscimento automatico usa la tua chiave API.' },
+  { a: '/aggiungi/foto', icona: IconaFotocamera, nome: 'Foto di frigo, freezer e dispensa', descrizione: 'Tieni le foto aggiornate di ripiani, cassetti e portiera; il riconoscimento automatico usa la tua chiave API.' },
 ];
 
 export function Aggiungi() {

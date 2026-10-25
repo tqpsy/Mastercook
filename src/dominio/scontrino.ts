@@ -128,3 +128,24 @@ export function abbinaRiga(testo: string, alias: ReadonlyMap<string, string>, in
   const esito = migliore.confidenza >= 0.85 ? 'confermato' : migliore.confidenza >= 0.6 ? 'da_controllare' : 'da_scegliere';
   return { migliore, esito };
 }
+
+/**
+ * Unisce il testo delle foto di uno scontrino lungo, fatte dall'alto verso il basso: le righe
+ * finite in due foto di fila (la parte in comune) si tengono una volta sola.
+ */
+export function unisciParti(testi: string[], sovrapposizioneMassima = 8): string {
+  const chiave = (r: string) => r.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const righe: string[] = [];
+  for (const testo of testi) {
+    const nuove = testo.split('\n').filter((r) => chiave(r));
+    let comuni = 0;
+    for (let k = Math.min(sovrapposizioneMassima, righe.length, nuove.length); k > 0; k--) {
+      if (nuove.slice(0, k).every((r, i) => chiave(r) === chiave(righe[righe.length - k + i]!))) {
+        comuni = k;
+        break;
+      }
+    }
+    righe.push(...nuove.slice(comuni));
+  }
+  return righe.join('\n');
+}

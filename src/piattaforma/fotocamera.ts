@@ -1,5 +1,5 @@
 /**
- * Fotocamera posteriore e lettura dei codici a barre.
+ * Fotocamera posteriore e lettura dei codici a barre e dei QR code.
  * Usa BarcodeDetector nativo dove c'è (Chrome su Android) e la versione WebAssembly
  * di ZXing negli altri browser (Safari su iPhone), caricata solo quando serve.
  */
@@ -44,17 +44,18 @@ interface Rilevatore {
   detect(sorgente: HTMLVideoElement): Promise<{ rawValue: string }[]>;
 }
 
-const FORMATI = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+const FORMATI_PRODOTTO = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
 
-export async function creaRilevatore(): Promise<Rilevatore> {
+/** Rilevatore dei codici a barre dei prodotti, o di altri formati (es. ['qr_code'] per gli scontrini). */
+export async function creaRilevatore(formati = FORMATI_PRODOTTO): Promise<Rilevatore> {
   const Nativo = (globalThis as { BarcodeDetector?: { new (o: { formats: string[] }): Rilevatore; getSupportedFormats(): Promise<string[]> } })
     .BarcodeDetector;
   if (Nativo) {
     const supportati = await Nativo.getSupportedFormats().catch(() => [] as string[]);
-    if (FORMATI.some((f) => supportati.includes(f))) return new Nativo({ formats: FORMATI.filter((f) => supportati.includes(f)) });
+    if (formati.some((f) => supportati.includes(f))) return new Nativo({ formats: formati.filter((f) => supportati.includes(f)) });
   }
   const { BarcodeDetector } = await import('barcode-detector/ponyfill');
-  return new BarcodeDetector({ formats: FORMATI as never[] }) as unknown as Rilevatore;
+  return new BarcodeDetector({ formats: formati as never[] }) as unknown as Rilevatore;
 }
 
 /** Scatta un fotogramma dal video, ridimensionato a 1600 px sul lato lungo (JPEG 0,8). */

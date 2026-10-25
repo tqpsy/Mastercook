@@ -92,7 +92,7 @@ Le decisioni da cui nasce questo codice sono nel [riepilogo del progetto](https:
 
 ## Stato
 
-Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino con Tesseract.js (o Google Vision con chiave propria), foto di frigo e dispensa (riconoscimento con chiave Gemini propria), ricette di sistema e personali, suggerimenti filtrati per allergie, accesso con Google e sincronizzazione cifrata sul Google Drive dell'amministratore, "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON.
+Funziona oggi, tutto sul dispositivo e senza account: nucleo e membri con allergie e restrizioni, casa (frigo, freezer, dispensa) con scadenze stimate e "usa prima", aggiunta a mano, codice a barre con Open Food Facts, scontrino in più foto o dal QR code con Tesseract.js (Google Vision facoltativa, con chiave propria), foto di frigo, freezer e dispensa, più foto per zona (riconoscimento con chiave Gemini gratuita propria), ricette di sistema e personali, suggerimenti filtrati per allergie, accesso con Google e sincronizzazione cifrata sul Google Drive dell'amministratore, "Ho cucinato" con scarico e avanzi, lista della spesa per reparti che carica in casa ciò che spunti, esportazione JSON.
 
 ## Prossimi passi
 

@@ -5,6 +5,7 @@
  * - Con la chiave Google Cloud Vision dell'utente: endpoint UE, più preciso. La chiamata parte dal
  *   telefono; la foto non passa dai server di Masterfood e non viene salvata.
  */
+import { unisciParti } from '../dominio/scontrino';
 import { leggiChiave } from './chiaviApi';
 
 /** Scala di grigi e contrasto: aiuta Tesseract con la carta termica. */
@@ -36,7 +37,7 @@ async function conTesseract(immagini: HTMLCanvasElement[], progresso: (p: number
       testi.push(data.text);
       parte++;
     }
-    return testi.join('\n');
+    return unisciParti(testi);
   } finally {
     await worker.terminate();
   }
@@ -57,7 +58,7 @@ async function conVision(immagini: HTMLCanvasElement[], chiave: string, progress
   if (!r.ok) throw new Error(r.status === 403 || r.status === 400 ? 'chiave' : 'rete');
   const dati = (await r.json()) as { responses: { fullTextAnnotation?: { text: string } }[] };
   progresso(1);
-  return dati.responses.map((x) => x.fullTextAnnotation?.text ?? '').join('\n');
+  return unisciParti(dati.responses.map((x) => x.fullTextAnnotation?.text ?? ''));
 }
 
 export type MotoreOcr = 'tesseract' | 'vision';
