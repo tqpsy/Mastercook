@@ -30,7 +30,7 @@ export async function riconosciProdotti(canvas: HTMLCanvasElement): Promise<Prod
       }),
     });
     if (r.status === 404) continue;
-    if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'chiave' : 'rete');
+    if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'chiave' : r.status === 429 ? 'quota' : 'rete');
     const risposta = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     const testo = risposta.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
     const elenco = JSON.parse(testo) as unknown;

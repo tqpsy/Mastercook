@@ -14,10 +14,19 @@ function apri(): Promise<IDBDatabase> {
   });
 }
 
+/** Prodotto riconosciuto in una foto, già collegato a un ingrediente. */
+export interface Visto {
+  id: string;
+  nome: string;
+}
+
 export interface FotoSalvata {
   id: string;
   blob: Blob;
   il: string;
+  /** Prodotti riconosciuti da Gemini; assente se la foto non è ancora stata analizzata. */
+  visti?: Visto[];
+  esito?: 'ok' | 'errore';
 }
 
 /** Al massimo tante foto per zona: bastano per un frigo con cassetti e portiera. */

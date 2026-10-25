@@ -1142,3 +1142,18 @@ fieldset.campo {
   border-radius: var(--raggio);
   background: #000;
 }
+
+.griglia-foto .etichetta-foto {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 0.72rem;
+}
+
+.griglia-foto .etichetta-foto.avviso {
+  background: #b3261e;
+}

@@ -69,7 +69,7 @@ export function scatta(video: HTMLVideoElement, lato = 1600): HTMLCanvasElement 
 }
 
 /** Legge un file immagine (da <input capture>) in un canvas ridimensionato. */
-export async function immagineDaFile(file: File, lato = 1600): Promise<HTMLCanvasElement> {
+export async function immagineDaFile(file: Blob, lato = 1600): Promise<HTMLCanvasElement> {
   const bitmap = await createImageBitmap(file);
   const scala = Math.min(1, lato / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');
