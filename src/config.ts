@@ -17,10 +17,11 @@ const CHIAVE_API_GOOGLE = 'AIzaSyDZ4P2SQ9bpPLdb2ojAI9VDKUQdQjYQgFg';
 
 /**
  * Progetto Firebase (piano gratuito) per la copia condivisa e cifrata dei nuclei: identificativi
- * pubblici, fatti per stare nel client. Vuoti = gli invitati confermano i file di Drive col selettore.
+ * pubblici, fatti per stare nel client (la sicurezza la danno le regole di Firestore e la cifratura).
+ * Vuoti = gli invitati confermano i file di Drive col selettore.
  */
-const FIREBASE_API_KEY = '';
-const FIREBASE_PROJECT_ID = '';
+const FIREBASE_API_KEY = 'AIzaSyBrVQN7D5KFBfrSgUWC2gcsITV3OEDamTA';
+const FIREBASE_PROJECT_ID = 'mastercook-512707';
 
 export const config = {
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || ID_CLIENT_GOOGLE,
