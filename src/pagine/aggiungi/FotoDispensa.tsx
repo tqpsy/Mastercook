@@ -50,9 +50,15 @@ function collegaVisti(nomi: ProdottoVisto[]): Visto[] {
   const visti: Visto[] = [];
   for (const v of nomi) {
     const [r] = cercaIngredienti(v.nome, 1);
-    if (!r || r.confidenza < 0.6 || visti.some((x) => x.id === r.ingrediente.id)) continue;
+    if (!r || r.confidenza < 0.6) continue;
+    const pezzi = typeof v.pezzi === 'number' && v.pezzi >= 1 ? Math.min(Math.round(v.pezzi), 50) : undefined;
+    const gia = visti.find((x) => x.id === r.ingrediente.id);
+    if (gia) {
+      if (pezzi) gia.pezzi = (gia.pezzi ?? 1) + pezzi;
+      continue;
+    }
     const posizione = POSIZIONI.find((p) => p === v.posizione);
-    visti.push({ id: r.ingrediente.id, nome: v.nome, ...(posizione ? { posizione } : {}) });
+    visti.push({ id: r.ingrediente.id, nome: v.nome, ...(pezzi ? { pezzi } : {}), ...(posizione ? { posizione } : {}) });
   }
   return visti;
 }
@@ -175,7 +181,13 @@ export function FotoDispensa() {
   // Tutto quello che si vede nelle foto della zona, una volta sola.
   const vistiZona = useMemo(() => {
     const mappa = new Map<string, Visto>();
-    for (const f of foto) for (const v of f.visti ?? []) if (!mappa.has(v.id)) mappa.set(v.id, v);
+    for (const f of foto)
+      for (const v of f.visti ?? []) {
+        // Le foto possono riprendere lo stesso ripiano: dei pezzi si tiene il conto più alto.
+        const gia = mappa.get(v.id);
+        if (!gia) mappa.set(v.id, v);
+        else if ((v.pezzi ?? 0) > (gia.pezzi ?? 0)) mappa.set(v.id, { ...gia, pezzi: v.pezzi });
+      }
     return mappa;
   }, [foto]);
   const inCasa = new Set(inventario.map((v) => v.articolo.ingrediente_id));
@@ -187,11 +199,16 @@ export function FotoDispensa() {
     const scelti = daAggiungere.filter((v) => !esclusi.has(v.id));
     for (const v of scelti) {
       const ing = ingrediente(v.id)!;
+      // Pezzi: quanti se ne vedono; peso e volume: confezioni viste × confezione tipica.
+      const confezione = ing.unita === 'pz' ? 1 : (ing.formato ?? 500);
+      const pezzi = v.pezzi ?? (ing.unita === 'pz' ? (ing.formato ?? 1) : 1);
       aggiungiArticolo(ctx, {
         nome: ing.nome,
         ingrediente_id: ing.id,
         unita: ing.unita,
-        quantita: ing.formato ?? 1,
+        quantita: pezzi * confezione,
+        confezione: ing.unita === 'pz' ? undefined : confezione,
+        unisci: true,
         luogo: zona,
         data_scadenza: scadenzaStimata(ing.id, zona),
         tipo_scadenza: 'stimata',
@@ -326,7 +343,10 @@ export function FotoDispensa() {
                     </span>
                     <span className="voce-testo">
                       <span className="voce-titolo">{ing.nome}</span>
-                      <span className="voce-dettaglio">visto: {v.nome} · quantità e scadenza da verificare</span>
+                      <span className="voce-dettaglio">
+                        visto: {v.nome}
+                        {v.pezzi && v.pezzi > 1 ? ` ×${v.pezzi}` : ''} · quantità e scadenza da verificare
+                      </span>
                     </span>
                   </label>
                 </li>

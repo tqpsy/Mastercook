@@ -100,6 +100,11 @@ export interface ArticoloInventario extends MetadatiComuni {
   /** Ingrediente generico, copiato dal prodotto per i calcoli di disponibilità. */
   ingrediente_id?: string;
   unita: UnitaCanonica;
+  /**
+   * Contenuto di una confezione nell'unità dell'articolo (1000 per «Latte 1 l»): il numero di
+   * confezioni mostrato è la quantità divisa per questo. Assente per i pezzi (1 = un pezzo).
+   */
+  confezione?: number;
   prodotto_id?: string;
   /** Per i cotti e gli avanzi. */
   ricetta_id?: string;

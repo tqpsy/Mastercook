@@ -28,13 +28,21 @@ interface RigaRevisione {
   includi: boolean;
 }
 
-function quantitaCarico(r: RigaRevisione): number {
+/** Quanto mettere in casa: confezioni × contenuto (dal testo dello scontrino o tipico dell'ingrediente). */
+function caricoRiga(r: RigaRevisione): { quantita: number; confezione?: number } {
   const ing = ingrediente(r.ingrediente_id);
-  if (!ing) return r.quantita;
-  if (r.peso_g && ing.unita === 'g') return r.peso_g;
+  if (!ing) return { quantita: r.quantita };
+  if (r.peso_g && ing.unita === 'g') return { quantita: r.peso_g };
   const formato = leggiFormato(r.testo);
   const perPezzo = formato && formato.unita === ing.unita ? formato.quantita : ing.formato ?? (ing.unita === 'pz' ? 1 : 500);
-  return r.quantita * perPezzo;
+  return { quantita: r.quantita * perPezzo, confezione: ing.unita === 'pz' ? undefined : perPezzo };
+}
+
+function descriviCarico(r: RigaRevisione): string {
+  const ing = ingrediente(r.ingrediente_id)!;
+  const { quantita, confezione } = caricoRiga(r);
+  const n = confezione ? Math.round(quantita / confezione) : 1;
+  return n > 1 ? `${n} × ${formattaQuantita(confezione!, ing.unita)}` : formattaQuantita(quantita, ing.unita, ing);
 }
 
 /** Uno scontrino lungo si fotografa a pezzi, dall'alto verso il basso. */
@@ -172,7 +180,7 @@ export function Scontrino() {
                           <span className="voce-titolo">{ing ? `${emojiIngrediente(ing.id)} ${ing.nome}` : 'Scegli cos’è'}</span>
                           <span className="voce-dettaglio">
                             {r.testo}
-                            {ing ? ` · ${formattaQuantita(quantitaCarico(r), ing.unita, ing)}` : ''}
+                            {ing ? ` · ${descriviCarico(r)}` : ''}
                           </span>
                         </button>
                         <span className="voce-destra">{formattaEuro(r.prezzo)}</span>
@@ -193,7 +201,7 @@ export function Scontrino() {
             onClick={() => {
               const spuntate = caricaScontrino(
                 ctx,
-                daCaricare.map((r) => ({ ingrediente_id: r.ingrediente_id!, nome: ingrediente(r.ingrediente_id)!.nome, quantita: quantitaCarico(r), prezzo: r.prezzo })),
+                daCaricare.map((r) => ({ ingrediente_id: r.ingrediente_id!, nome: ingrediente(r.ingrediente_id)!.nome, ...caricoRiga(r), prezzo: r.prezzo })),
                 negozio,
                 totale,
               );

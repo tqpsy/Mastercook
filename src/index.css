@@ -379,6 +379,57 @@ code {
   font-size: 0.85rem;
 }
 
+/* Righe di frigo, freezer e dispensa: il numerino con − e + resta fuori dal pulsante della voce. */
+.con-contatore {
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+
+.con-contatore .voce {
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.voce-testo .etichetta {
+  align-self: flex-start;
+  margin-top: 3px;
+}
+
+.contatore {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--linea);
+  border-radius: 99px;
+  background: var(--superficie);
+}
+
+.contatore button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 99px;
+  background: none;
+  color: var(--testo);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.contatore button:active {
+  background: var(--superficie-2);
+}
+
+.contatore-numero {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .voce-destra {
   display: flex;
   flex-direction: column;

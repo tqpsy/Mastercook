@@ -5,6 +5,7 @@
 import * as Y from 'yjs';
 import { aggiungiGiorni } from '../dominio/date';
 import { dataLocale, idArticoloLista, idArticoloListaTesto, idRicettaMeta, uuidv7 } from '../dominio/id';
+import { misuraConfezione, quantitaConUnaInMeno } from '../dominio/confezioni';
 import { arrotonda } from '../dominio/formato';
 import { quantitaDisponibile } from '../dominio/quantita';
 import type { Suggerimento } from '../dominio/suggerimenti';
@@ -82,7 +83,12 @@ export interface NuovoArticolo {
   prodotto_id?: string;
   ricetta_id?: string;
   unita: UnitaCanonica;
+  /** Quantità totale (confezioni × contenuto di una confezione). */
   quantita: number;
+  /** Contenuto di una confezione, quando si caricano più confezioni uguali. */
+  confezione?: number;
+  /** Se in casa c'è già lo stesso prodotto chiuso nello stesso posto, aumenta quello invece di aggiungerne un altro. */
+  unisci?: boolean;
   luogo: Luogo;
   data_scadenza?: DataLocale;
   tipo_scadenza?: TipoScadenza;
@@ -101,15 +107,41 @@ export function scadenzaStimata(ingredienteId: string | undefined, luogo: Luogo,
   return aggiungiGiorni(da, giorni);
 }
 
+/** Lo stesso prodotto, chiuso e fresco, nello stesso posto e con confezioni della stessa misura. */
+function gemello(ctx: Ctx, nuovo: NuovoArticolo): ArticoloInventario | undefined {
+  if (nuovo.ricetta_id || (nuovo.stato_conservazione ?? 'fresco') !== 'fresco') return undefined;
+  const misura = nuovo.confezione ?? (nuovo.unita === 'pz' ? 1 : nuovo.quantita);
+  const nome = nuovo.nome.trim().toLowerCase();
+  for (const e of collezione(ctx.dati, 'inventario').values()) {
+    const a = e.toJSON() as ArticoloInventario;
+    if (a.eliminato_il || a.ricetta_id || a.data_apertura || a.stato_conservazione !== 'fresco') continue;
+    if (a.luogo !== nuovo.luogo || a.unita !== nuovo.unita || a.ingrediente_id !== nuovo.ingrediente_id || a.nome.trim().toLowerCase() !== nome) continue;
+    const q = quantitaDisponibile(a.movimenti ?? [], a.unita);
+    if (q > 0 && misuraConfezione(a, q) === misura) return a;
+  }
+  return undefined;
+}
+
 export function aggiungiArticolo(ctx: Ctx, nuovo: NuovoArticolo): string {
-  const id = uuidv7();
-  const movimenti = new Y.Array<Movimento>();
-  movimenti.push([{ delta: nuovo.quantita, unita: nuovo.unita, membro: ctx.membroId, il: adesso(), motivo: 'carico' }]);
-  const { quantita, ...resto } = nuovo;
-  const campi: Record<string, unknown> = { id, stato_conservazione: 'fresco', ...resto, movimenti };
-  for (const k of Object.keys(campi)) if (campi[k] === undefined) delete campi[k];
+  const { quantita, unisci, ...resto } = nuovo;
+  const esistente = unisci ? gemello(ctx, nuovo) : undefined;
+  const id = esistente?.id ?? uuidv7();
   ctx.dati.transact(() => {
-    inserisciEntita(collezione(ctx.dati, 'inventario'), campi as { id: string }, ctx.membroId);
+    if (esistente) {
+      aggiungiMovimento(ctx, id, quantita, 'carico');
+      // Tiene la scadenza più vicina: è quella da guardare.
+      const scadenza = nuovo.data_scadenza && (!esistente.data_scadenza || nuovo.data_scadenza < esistente.data_scadenza);
+      modificaEntita(entita(ctx, 'inventario', id)!, {
+        ...(nuovo.unita !== 'pz' ? { confezione: misuraConfezione(esistente, quantita) } : {}),
+        ...(scadenza ? { data_scadenza: nuovo.data_scadenza, tipo_scadenza: nuovo.tipo_scadenza } : {}),
+      }, ctx.membroId);
+    } else {
+      const movimenti = new Y.Array<Movimento>();
+      movimenti.push([{ delta: quantita, unita: nuovo.unita, membro: ctx.membroId, il: adesso(), motivo: 'carico' }]);
+      const campi: Record<string, unknown> = { id, stato_conservazione: 'fresco', ...resto, movimenti };
+      for (const k of Object.keys(campi)) if (campi[k] === undefined) delete campi[k];
+      inserisciEntita(collezione(ctx.dati, 'inventario'), campi as { id: string }, ctx.membroId);
+    }
     registraEvento(ctx, 'carico', {
       ingrediente_id: nuovo.ingrediente_id,
       prodotto_id: nuovo.prodotto_id,
@@ -171,6 +203,22 @@ export function buttaArticolo(ctx: Ctx, articolo: ArticoloInventario, motivo: Mo
 export function correggiQuantita(ctx: Ctx, articolo: ArticoloInventario, nuova: number): void {
   const delta = nuova - quantitaArticolo(ctx, articolo.id);
   if (delta !== 0) aggiungiMovimento(ctx, articolo.id, delta, 'correzione');
+}
+
+/** Pulsante + della lista: una confezione (o un pezzo) in più. */
+export function unaConfezioneInPiu(ctx: Ctx, articolo: ArticoloInventario): void {
+  const misura = misuraConfezione(articolo, quantitaArticolo(ctx, articolo.id));
+  ctx.dati.transact(() => {
+    aggiungiMovimento(ctx, articolo.id, misura, 'correzione');
+    // Fissa la misura degli articoli caricati prima delle confezioni, così il conto non cambia più.
+    if (!articolo.confezione && articolo.unita !== 'pz') modificaEntita(entita(ctx, 'inventario', articolo.id)!, { confezione: misura }, ctx.membroId);
+  });
+}
+
+/** Pulsante − della lista: una confezione in meno (prima quella iniziata), segnata come consumata. */
+export function unaConfezioneInMeno(ctx: Ctx, articolo: ArticoloInventario): void {
+  const q = quantitaArticolo(ctx, articolo.id);
+  consumaArticolo(ctx, articolo, q - quantitaConUnaInMeno(q, misuraConfezione(articolo, q)));
 }
 
 export function modificaArticolo(ctx: Ctx, id: string, campi: Partial<ArticoloInventario>): void {
@@ -407,6 +455,7 @@ export interface RigaConfermata {
   ingrediente_id: string;
   nome: string;
   quantita: number;
+  confezione?: number;
   prezzo: number;
 }
 
@@ -427,6 +476,8 @@ export function caricaScontrino(ctx: Ctx, righe: readonly RigaConfermata[], nego
         ingrediente_id: ing.id,
         unita: ing.unita,
         quantita: r.quantita,
+        confezione: r.confezione,
+        unisci: true,
         luogo: ing.luogo,
         data_scadenza: scadenzaStimata(ing.id, ing.luogo),
         tipo_scadenza: 'stimata',
