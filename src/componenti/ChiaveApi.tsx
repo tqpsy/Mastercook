@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { leggiChiave, scriviChiave } from '../piattaforma/chiaviApi';
+import { chiavePropria, scriviChiave, usaChiaveDelNucleo } from '../piattaforma/chiaviApi';
 import { verificaChiave, type EsitoVerifica } from '../piattaforma/verificaChiave';
 import { QuotaGemini } from './QuotaGemini';
 import { mostraAvviso } from './ui';
 
 /** `compatta`: senza titolo né spiegazione, per la guida del primo avvio. */
 export function ChiaveApi({ compatta = false }: { compatta?: boolean }) {
-  const [valore, setValore] = useState(() => leggiChiave('gemini'));
+  const [valore, setValore] = useState(() => chiavePropria('gemini'));
   const [esito, setEsito] = useState<EsitoVerifica | 'in_corso'>();
   return (
     <div className="sezione">
@@ -20,6 +20,9 @@ export function ChiaveApi({ compatta = false }: { compatta?: boolean }) {
         Gemini è facoltativo e solo per maggiorenni (lo chiedono i termini di Google). Le foto e la dieta che analizzi arrivano a Google:
         per chi è nell’UE Google non le usa per addestrare i suoi modelli. Non fotografare persone o documenti.
       </p>
+      {usaChiaveDelNucleo('gemini') && !valore && (
+        <p className="esito-ok">✓ Usi la chiave Gemini di chi ha creato il nucleo: non devi fare nulla.</p>
+      )}
       <form
         className="riquadro"
         onSubmit={(e) => {
