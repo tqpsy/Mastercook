@@ -170,6 +170,18 @@ export interface PortataPianificata {
   quantita_g?: number;
 }
 
+/**
+ * Ospiti a un pasto: solo numeri ed esigenze, senza nomi. Allergie e restrizioni si
+ * dimenticano quando il pasto è passato.
+ */
+export interface Ospiti {
+  adulti: number;
+  bambini: number;
+  /** Allergie e intolleranze (codici UE: «latte» copre il lattosio, «glutine» la celiachia). */
+  allergie: string[];
+  restrizioni: Restrizione[];
+}
+
 /** Entità della collezione `piani`, una per pasto: id `2026-10-27:cena`. */
 export interface Pasto extends Partial<MetadatiComuni> {
   id?: string;
@@ -177,6 +189,7 @@ export interface Pasto extends Partial<MetadatiComuni> {
   tipo: TipoPasto;
   membri_presenti: MembroId[];
   portate: PortataPianificata[];
+  ospiti?: Ospiti;
 }
 
 /** Un alimento prescritto, come scritto dal dietista e collegato agli ingredienti sul dispositivo. */

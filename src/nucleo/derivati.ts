@@ -4,8 +4,9 @@ import { aggiungiGiorni } from '../dominio/date';
 import { articoliPresenti, calcolaDisponibilita, type ArticoloValutato, type Disponibilita } from '../dominio/disponibilita';
 import { porzioneEffettiva } from '../dominio/fabbisogni';
 import { dataLocale } from '../dominio/id';
+import { presenteOspiti } from '../dominio/ospiti';
 import type { ContestoSuggerimenti, Presente } from '../dominio/suggerimenti';
-import type { ArticoloInventario, EventoStorico, Membro, Ricetta } from '../dominio/tipi';
+import type { ArticoloInventario, EventoStorico, Membro, Ospiti, Ricetta } from '../dominio/tipi';
 import { RICETTE_SISTEMA } from '../rif/ricette';
 import { useNucleo } from './contesto';
 import { useCollezione } from './hooks';
@@ -78,7 +79,7 @@ export function presenteDa(m: Membro, oggi = dataLocale()): Presente {
 }
 
 /** Contesto dei suggerimenti per i membri scelti (di default tutti gli attivi). */
-export function useContestoSuggerimenti(membriPresenti?: readonly string[]): ContestoSuggerimenti {
+export function useContestoSuggerimenti(membriPresenti?: readonly string[], ospiti?: Ospiti | null): ContestoSuggerimenti {
   const membri = useMembri();
   const disponibilita = useDisponibilita();
   const meta = useMetaRicette();
@@ -86,6 +87,8 @@ export function useContestoSuggerimenti(membriPresenti?: readonly string[]): Con
   const oggi = useOggi();
   return useMemo(() => {
     const presenti = membri.filter((m) => m.attivo !== false && (!membriPresenti || membriPresenti.includes(m.id))).map((m) => presenteDa(m, oggi));
+    const diFuori = presenteOspiti(ospiti);
+    if (diFuori) presenti.push(diFuori);
     const limite = aggiungiGiorni(oggi, -5);
     const recenti = new Set(eventi.filter((e) => e.tipo === 'preparazione' && e.il.slice(0, 10) >= limite && e.motivo).map((e) => e.motivo!));
     return {
@@ -96,5 +99,5 @@ export function useContestoSuggerimenti(membriPresenti?: readonly string[]): Con
       voti: new Map([...meta.values()].filter((m) => m.voto).map((m) => [m.ricetta_id, m.voto!])),
       recenti,
     };
-  }, [membri, membriPresenti, disponibilita, meta, eventi, oggi]);
+  }, [membri, membriPresenti, ospiti, disponibilita, meta, eventi, oggi]);
 }

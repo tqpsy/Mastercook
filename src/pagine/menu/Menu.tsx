@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { FoglioOspiti } from '../../componenti/Ospiti';
 import { Chip, Foglio, Vuoto, mostraAvviso } from '../../componenti/ui';
 import { aggiungiGiorni } from '../../dominio/date';
 import { NOME_PASTO, NOMI_GIORNI } from '../../dominio/dieta';
 import type { TipoPasto } from '../../dominio/id';
 import { ORDINE_PASTI, giorniSettimana, lunediDi, porzioniPortata } from '../../dominio/menu';
+import { descriviOspiti, presenteOspiti, quantiOspiti } from '../../dominio/ospiti';
 import { normalizza } from '../../dominio/ricerca';
-import type { Pasto, PortataPianificata } from '../../dominio/tipi';
+import { motivoEsclusione } from '../../dominio/suggerimenti';
+import type { Ospiti, Pasto, PortataPianificata } from '../../dominio/tipi';
 import { useNucleo } from '../../nucleo/contesto';
 import { useMembri, useNomeMembro, useOggi, useRicette } from '../../nucleo/derivati';
 import { useDiete, useFattorePorzione, usePastiSettimana, useRicettaPerId } from '../../nucleo/hooksMenu';
-import { aggiungiRicettaAlPasto, cambiaRicetta, mettiInListaMenu, togliPortata } from '../../nucleo/menu';
+import { aggiungiRicettaAlPasto, cambiaRicetta, impostaOspiti, mettiInListaMenu, togliPortata } from '../../nucleo/menu';
 import { EMOJI_PORTATA, emojiIngrediente } from '../../rif/emoji';
 
 const FORMATO_GIORNO = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' });
@@ -32,6 +35,7 @@ export function Menu() {
   const ricettaPerId = useRicettaPerId();
   const [aperta, setAperta] = useState<{ pasto: Pasto; indice: number } | null>(null);
   const [aggiungiIl, setAggiungiIl] = useState<string | null>(null);
+  const [ospitiDi, setOspitiDi] = useState<Pasto | null>(null);
 
   const perGiorno = useMemo(() => {
     const mappa = new Map<string, Pasto[]>();
@@ -111,13 +115,21 @@ export function Menu() {
             </div>
             {delGiorno.map((pasto) => (
               <div key={pasto.tipo} className="sezione" style={{ gap: 6 }}>
-                <span className="piccolo testo-tenue">{NOME_PASTO[pasto.tipo]}</span>
+                <div className="sezione-testa">
+                  <span className="piccolo testo-tenue">{NOME_PASTO[pasto.tipo]}</span>
+                  {data >= oggi && (
+                    <button type="button" className="bottone-testo piccolo" onClick={() => setOspitiDi(pasto)}>
+                      {quantiOspiti(pasto.ospiti) ? `👥 ${descriviOspiti(pasto.ospiti)}` : '+ Ospiti'}
+                    </button>
+                  )}
+                </div>
                 <ul className="elenco">
                   {pasto.portate.map((portata, indice) => (
                     <li key={`${portata.ricetta_id ?? portata.titolo}-${indice}`}>
                       <RigaPortata
                         portata={portata}
-                        dettaglio={dettaglioPortata(portata, nome, fattore, membri.length)}
+                        dettaglio={dettaglioPortata(portata, nome, fattore, membri.length, pasto.ospiti)}
+                        ospiti={pasto.ospiti}
                         onApri={() => setAperta({ pasto, indice })}
                       />
                     </li>
@@ -145,24 +157,46 @@ export function Menu() {
 
       {aperta && <FoglioPortata pasto={aperta.pasto} indice={aperta.indice} onChiudi={() => setAperta(null)} />}
       {aggiungiIl && <FoglioAggiungi data={aggiungiIl} onChiudi={() => setAggiungiIl(null)} />}
+      {ospitiDi && (
+        <FoglioOspiti
+          titolo={`Ospiti a ${NOME_PASTO[ospitiDi.tipo].toLowerCase()}`}
+          iniziale={ospitiDi.ospiti}
+          onSalva={(o) => {
+            impostaOspiti(ctx, ospitiDi.data, ospitiDi.tipo, o);
+            mostraAvviso(o ? `${descriviOspiti(o)}: porzioni e spesa aggiornate` : 'Ospiti tolti');
+          }}
+          onChiudi={() => setOspitiDi(null)}
+        />
+      )}
     </section>
   );
 }
 
-function dettaglioPortata(portata: PortataPianificata, nome: (id: string) => string, fattore: (m: string) => number, quantiMembri: number): string {
+function dettaglioPortata(
+  portata: PortataPianificata,
+  nome: (id: string) => string,
+  fattore: (m: string) => number,
+  quantiMembri: number,
+  ospiti?: Ospiti,
+): string {
   const parti: string[] = [];
   if (portata.membri.length && (portata.membri.length < quantiMembri || quantiMembri === 1)) parti.push(portata.membri.map(nome).join(', '));
   else parti.push('Tutti');
-  if (portata.ricetta_id) parti.push(porzioniTesto(porzioniPortata(portata, fattore)));
+  const n = quantiOspiti(ospiti);
+  if (portata.ricetta_id && n) parti.push(`+ ${n === 1 ? '1 ospite' : `${n} ospiti`}`);
+  if (portata.ricetta_id) parti.push(porzioniTesto(porzioniPortata(portata, fattore, ospiti)));
   const note = Object.entries(portata.note_dieta ?? {});
   if (note.length === 1) parti.push(`dieta: ${note[0]![1]}`);
   else if (note.length > 1) parti.push('come da dieta');
   return parti.join(' · ');
 }
 
-function RigaPortata({ portata, dettaglio, onApri }: { portata: PortataPianificata; dettaglio: string; onApri: () => void }) {
+function RigaPortata({ portata, dettaglio, ospiti, onApri }: { portata: PortataPianificata; dettaglio: string; ospiti?: Ospiti; onApri: () => void }) {
   const ricettaPerId = useRicettaPerId();
   const ricetta = portata.ricetta_id ? ricettaPerId(portata.ricetta_id) : undefined;
+  const perOspiti = presenteOspiti(ospiti);
+  // Le esigenze degli ospiti valgono per tutto il pasto: si avvisa se una portata non va bene.
+  const nonAdatta = ricetta && perOspiti ? motivoEsclusione(ricetta, [perOspiti]) : undefined;
   const emoji = ricetta ? EMOJI_PORTATA[ricetta.portata] : portata.ingrediente_id ? emojiIngrediente(portata.ingrediente_id) : '🍽️';
   return (
     <button type="button" className="voce" onClick={onApri}>
@@ -172,6 +206,11 @@ function RigaPortata({ portata, dettaglio, onApri }: { portata: PortataPianifica
       <span className="voce-testo">
         <span className="voce-titolo">{portata.titolo}</span>
         <span className="voce-dettaglio">{dettaglio}</span>
+        {nonAdatta && (
+          <span className="voce-dettaglio" style={{ color: 'var(--rosso)' }}>
+            Non adatta agli ospiti: {nonAdatta.replace(/ \(ospiti\)$/, '')}
+          </span>
+        )}
       </span>
       {portata.dieta_di?.length ? <span className="etichetta ok">dieta</span> : null}
     </button>

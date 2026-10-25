@@ -1,12 +1,14 @@
 /**
  * Menù settimanale: un'entità per pasto nella collezione `piani` (id `2026-10-27:cena`).
  * Le porzioni di una portata sono la somma, per ogni membro, di quelle prescritte dalla sua
- * dieta o, se non ha una dieta, del suo fattore di porzione (adulto 1,0).
+ * dieta o, se non ha una dieta, del suo fattore di porzione (adulto 1,0), più gli ospiti del pasto
+ * (adulto 1,0, bambino 0,6) sulle portate con una ricetta.
  */
 import { ingrediente } from '../rif/ingredienti';
 import { aggiungiGiorni } from './date';
 import type { TipoPasto } from './id';
-import type { DataLocale, MembroId, Pasto, PortataPianificata, Ricetta } from './tipi';
+import { fattoreOspiti } from './ospiti';
+import type { DataLocale, MembroId, Ospiti, Pasto, PortataPianificata, Ricetta } from './tipi';
 
 /** Lunedì della settimana di una data. */
 export function lunediDi(data: DataLocale): DataLocale {
@@ -19,9 +21,10 @@ export function giorniSettimana(lunedi: DataLocale): DataLocale[] {
   return Array.from({ length: 7 }, (_, i) => aggiungiGiorni(lunedi, i));
 }
 
-export function porzioniPortata(portata: PortataPianificata, fattore: (m: MembroId) => number): number {
+export function porzioniPortata(portata: PortataPianificata, fattore: (m: MembroId) => number, ospiti?: Ospiti): number {
   if (portata.porzioni_manuali) return portata.porzioni_manuali;
-  return portata.membri.reduce((s, m) => s + (portata.porzioni_dieta?.[m] ?? fattore(m)), 0);
+  const membri = portata.membri.reduce((s, m) => s + (portata.porzioni_dieta?.[m] ?? fattore(m)), 0);
+  return membri + (portata.ricetta_id ? fattoreOspiti(ospiti) : 0);
 }
 
 /**
@@ -37,7 +40,7 @@ export function fabbisognoMenu(
   const somma = (id: string, q: number) => q > 0 && totale.set(id, (totale.get(id) ?? 0) + q);
   for (const pasto of pasti) {
     for (const portata of pasto.portate) {
-      const porzioni = porzioniPortata(portata, fattore);
+      const porzioni = porzioniPortata(portata, fattore, pasto.ospiti);
       if (!porzioni) continue;
       const ricetta = portata.ricetta_id ? ricettaPerId(portata.ricetta_id) : undefined;
       if (ricetta) {

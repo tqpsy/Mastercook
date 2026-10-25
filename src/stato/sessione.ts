@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { Ospiti } from '../dominio/tipi';
 import { leggiNucleoCorrente, scriviMembroCorrente, scriviNucleoCorrente } from '../nucleo/registro';
 
 interface StatoSessione {
@@ -11,6 +12,9 @@ interface StatoSessione {
   /** Chi mangia, scelto nella scheda Ricette (null = tutti i membri attivi). */
   presenti: string[] | null;
   scegliPresenti: (presenti: string[] | null) => void;
+  /** Ospiti di oggi nella scheda Ricette: restano solo in memoria, non si salvano. */
+  ospiti: Ospiti | null;
+  scegliOspiti: (ospiti: Ospiti | null) => void;
 }
 
 export const useSessione = create<StatoSessione>((set) => ({
@@ -18,9 +22,11 @@ export const useSessione = create<StatoSessione>((set) => ({
   membroCorrenteId: null,
   presenti: null,
   scegliPresenti: (presenti) => set({ presenti }),
+  ospiti: null,
+  scegliOspiti: (ospiti) => set({ ospiti }),
   scegliNucleo: (id) => {
     scriviNucleoCorrente(id);
-    set({ nucleoCorrenteId: id, membroCorrenteId: null, presenti: null });
+    set({ nucleoCorrenteId: id, membroCorrenteId: null, presenti: null, ospiti: null });
   },
   scegliMembro: (nucleoId, membroId) => {
     scriviMembroCorrente(nucleoId, membroId);
