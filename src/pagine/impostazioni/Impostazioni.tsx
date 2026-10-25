@@ -149,6 +149,9 @@ export function Impostazioni() {
           <button type="button" className="bottone secondario" onClick={() => scaricaBackup(nucleo.nucleo.nome, nucleo.dati, nucleo.storico)}>
             Scarica i dati (JSON)
           </button>
+          <Link className="bottone secondario" to="/impostazioni/cestino">
+            Cestino
+          </Link>
           <button
             type="button"
             className="bottone pericolo"

@@ -84,7 +84,7 @@ export function Benvenuto() {
             }
           }}
         />
-        {errore && <p className="esito-errore">{errore}</p>}
+        {errore && <p className="esito-errore" role="alert">{errore}</p>}
         <button type="button" className="bottone-testo" onClick={() => setPasso('nucleo')}>
           Crea invece un nuovo nucleo
         </button>

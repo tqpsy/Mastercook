@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { ErrorePagina } from './componenti/Paracadute';
 import { Struttura } from './componenti/Struttura';
 import { ProviderNucleo } from './nucleo/contesto';
 import { MotoreSync } from './nucleo/sync';
@@ -17,6 +18,7 @@ import { FotoDispensa } from './pagine/aggiungi/FotoDispensa';
 import { ScansionaCodice } from './pagine/aggiungi/ScansionaCodice';
 import { Scontrino } from './pagine/aggiungi/Scontrino';
 import { Impostazioni } from './pagine/impostazioni/Impostazioni';
+import { Cestino } from './pagine/impostazioni/Cestino';
 import { Membro } from './pagine/impostazioni/Membro';
 import { CaricaDieta } from './pagine/menu/CaricaDieta';
 import { Menu } from './pagine/menu/Menu';
@@ -29,6 +31,7 @@ const router = createBrowserRouter(
   [
     {
       element: <Struttura />,
+      errorElement: <ErrorePagina />,
       children: [
         { index: true, element: <Oggi /> },
         { path: 'casa', element: <Casa /> },
@@ -46,11 +49,12 @@ const router = createBrowserRouter(
         { path: 'ricette/:id/modifica', element: <EditorRicetta /> },
         { path: 'impostazioni', element: <Impostazioni /> },
         { path: 'impostazioni/membri/:id', element: <Membro /> },
+        { path: 'impostazioni/cestino', element: <Cestino /> },
         { path: '*', element: <Navigate to="/" replace /> },
       ],
     },
     // Fuori dalla struttura: tutto schermo, senza intestazione né barra delle schede.
-    { path: 'spesa', element: <Spesa /> },
+    { path: 'spesa', element: <Spesa />, errorElement: <ErrorePagina /> },
   ],
   { basename: import.meta.env.BASE_URL.replace(/\/$/, '') || '/' },
 );

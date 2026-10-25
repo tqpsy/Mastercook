@@ -26,6 +26,8 @@ import { eliminaDieta, portaNelMenu, salvaDieta } from '../../nucleo/menu';
 import { leggiChiave } from '../../piattaforma/chiaviApi';
 import { immagineDaFile } from '../../piattaforma/fotocamera';
 import { leggiDietaConGemini } from '../../piattaforma/gemini';
+import { useQuotaGemini } from '../../piattaforma/quotaGemini';
+import { messaggioQuotaFinita, QuotaGemini } from '../../componenti/QuotaGemini';
 import { leggiPagine } from '../../piattaforma/ocr';
 import { EMOJI_PORTATA } from '../../rif/emoji';
 
@@ -42,7 +44,7 @@ type Passo = 'carica' | 'controlla' | 'menu';
 
 const ERRORI_GEMINI: Record<string, string> = {
   chiave: 'La chiave Gemini non funziona: controllala in Impostazioni → Funzioni avanzate.',
-  quota: 'Per oggi le richieste gratuite di Gemini sono finite: riprova più tardi o domani.',
+  quota: 'Gemini ha ricevuto troppe richieste in poco tempo: riprova tra un minuto.',
   modello: 'Gemini non risponde con il modello previsto: riprova più tardi.',
 };
 
@@ -199,6 +201,9 @@ function DietaMembro({ membroId, nomeMembro, settimana }: { membroId: string; no
 
 function PassoCarica({ onLetta, onAnnulla, haGiaUna }: { onLetta: (d: DietaLetta, con: 'gemini' | 'telefono') => void; onAnnulla?: () => void; haGiaUna: boolean }) {
   const conChiave = !!leggiChiave('gemini');
+  // Finita la prova gratuita del giorno, foto e testo si leggono sul telefono.
+  const quotaFinita = useQuotaGemini((q) => q.esaurita);
+  const usaGemini = conChiave && !quotaFinita;
   const [pagine, setPagine] = useState<Pagina[]>([]);
   const [pdf, setPdf] = useState<File | null>(null);
   const [testo, setTesto] = useState('');
@@ -232,7 +237,7 @@ function PassoCarica({ onLetta, onAnnulla, haGiaUna }: { onLetta: (d: DietaLetta
       let letta: DietaLetta;
       let con: 'gemini' | 'telefono' = 'telefono';
       if (testo.trim() && !pagine.length && !pdf) {
-        if (conChiave) {
+        if (usaGemini) {
           letta = dietaDaGemini(await leggiDietaConGemini({ tipo: 'testo', testo }));
           con = 'gemini';
         } else letta = leggiDietaDaTesto(testo);
@@ -244,8 +249,8 @@ function PassoCarica({ onLetta, onAnnulla, haGiaUna }: { onLetta: (d: DietaLetta
         letta = dietaDaGemini(await leggiDietaConGemini({ tipo: 'pdf', base64: await leggiComeBase64(pdf) }));
         con = 'gemini';
       } else {
-        const immagini = await Promise.all(pagine.map((p) => immagineDaFile(p.file, conChiave ? 1600 : 2000)));
-        if (conChiave) {
+        const immagini = await Promise.all(pagine.map((p) => immagineDaFile(p.file, usaGemini ? 1600 : 2000)));
+        if (usaGemini) {
           setProgresso(0.5);
           letta = dietaDaGemini(await leggiDietaConGemini({ tipo: 'immagini', immagini }));
           con = 'gemini';
@@ -253,7 +258,7 @@ function PassoCarica({ onLetta, onAnnulla, haGiaUna }: { onLetta: (d: DietaLetta
       }
       if (contaVoci(letta.giorni) === 0) {
         setErrore(
-          conChiave
+          usaGemini
             ? 'Non ho trovato pasti con alimenti. È proprio la dieta? Prova con foto più nitide o incolla il testo.'
             : 'Non sono riuscito a leggere i pasti. Prova con più luce e il foglio ben disteso, oppure incolla il testo. Con la chiave Gemini gratuita la lettura è molto più precisa, anche per i PDF.',
         );
@@ -262,7 +267,7 @@ function PassoCarica({ onLetta, onAnnulla, haGiaUna }: { onLetta: (d: DietaLetta
       onLetta(letta, con);
     } catch (e) {
       const codice = e instanceof Error ? e.message : '';
-      setErrore(ERRORI_GEMINI[codice] ?? 'La lettura non è riuscita. Controlla la connessione e riprova.');
+      setErrore(codice === 'quota_giorno' ? messaggioQuotaFinita() : ERRORI_GEMINI[codice] ?? 'La lettura non è riuscita. Controlla la connessione e riprova.');
     } finally {
       setProgresso(null);
     }
@@ -350,6 +355,12 @@ function PassoCarica({ onLetta, onAnnulla, haGiaUna }: { onLetta: (d: DietaLetta
         )}
       </div>
 
+      <QuotaGemini />
+      {quotaFinita && (
+        <p className="testo-tenue piccolo">
+          Per oggi la prova gratuita di Gemini è finita: foto e testo li leggo sul telefono (i PDF tornano disponibili domani).
+        </p>
+      )}
       {progresso === null ? (
         <div className="azioni colonna">
           <button type="button" className="bottone pieno accento" disabled={!pronto} onClick={leggi}>
@@ -370,7 +381,7 @@ function PassoCarica({ onLetta, onAnnulla, haGiaUna }: { onLetta: (d: DietaLetta
         </div>
       )}
       {errore && (
-        <div className="riquadro avviso">
+        <div className="riquadro avviso" role="alert">
           <p>{errore}</p>
         </div>
       )}

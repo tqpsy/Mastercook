@@ -108,7 +108,7 @@ export function Sincronizzazione() {
             </div>
           </>
         )}
-        {errore && <p className="esito-errore">{errore}</p>}
+        {errore && <p className="esito-errore" role="alert">{errore}</p>}
         {email && (
           <div className="sezione">
             <p className="testo-tenue piccolo">Esci quando il telefono non è tuo o lo presti: i dati restano al sicuro sul tuo Drive.</p>
