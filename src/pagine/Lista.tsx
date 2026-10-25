@@ -6,7 +6,7 @@ import { vistaLista, type RigaVista } from '../dominio/lista';
 import type { ArticoloLista } from '../dominio/tipi';
 import { useNucleo } from '../nucleo/contesto';
 import { aggiungiAllaLista, rimettiDaComprare, rimuoviRiga, spuntaRiga, svuotaPresi } from '../nucleo/azioni';
-import { useDisponibilita, useNomeMembro } from '../nucleo/derivati';
+import { useAutoreAltrui, useDisponibilita, useNomeMembro } from '../nucleo/derivati';
 import { useCollezione } from '../nucleo/hooks';
 import { emojiIngrediente } from '../rif/emoji';
 import { REPARTI } from '../rif/reparti';
@@ -27,9 +27,9 @@ function origineBreve(riga: ArticoloLista): string {
 
 function RigaSpesa({ v, onApri }: { v: RigaVista; onApri: () => void }) {
   const ctx = useNucleo();
-  const nome = useNomeMembro();
+  const autore = useAutoreAltrui();
   const presa = v.riga.stato === 'preso';
-  const dettaglio = [quantitaRiga(v), origineBreve(v.riga) || `da ${nome(v.riga.creato_da)}`].filter(Boolean).join(' · ');
+  const dettaglio = [quantitaRiga(v), origineBreve(v.riga) || (autore(v.riga.creato_da) && `da ${autore(v.riga.creato_da)}`)].filter(Boolean).join(' · ');
   return (
     <li className={presa ? 'presa' : ''}>
       <div className="voce">

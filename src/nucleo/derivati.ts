@@ -32,6 +32,13 @@ export function useNomeMembro(): (id: string | undefined) => string {
   }, [membri]);
 }
 
+/** Nome di chi ha inserito un dato, vuoto se sei tu: sul telefono "· Luca" ripetuto su ogni riga è solo rumore. */
+export function useAutoreAltrui(): (id: string | undefined) => string {
+  const { membroId } = useNucleo();
+  const nome = useNomeMembro();
+  return useMemo(() => (id) => (id && id !== membroId ? nome(id) : ''), [membroId, nome]);
+}
+
 export function useInventario(): ArticoloValutato[] {
   const articoli = useCollezione<ArticoloInventario>('inventario');
   const oggi = useOggi();

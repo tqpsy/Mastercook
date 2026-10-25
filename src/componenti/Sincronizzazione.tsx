@@ -68,10 +68,9 @@ export function Sincronizzazione() {
         ) : !collegato ? (
           <>
             <p className="testo-tenue piccolo">
-              Salva i dati sul tuo Google Drive per non perderli e ritrovarli sugli altri dispositivi. Sono cifrati: su Drive nessuno
-              può leggerli, e Masterfood vede solo i file che crea lei.
+              Salva i dati sul tuo Google Drive: non li perdi e li ritrovi sugli altri telefoni. Sono cifrati, nessuno può leggerli.
             </p>
-            <BottoneGoogle testo={inCorso ? 'Salvo su Drive…' : 'Accedi con Google e salva su Drive'} onClick={collega} disabled={inCorso} />
+            <BottoneGoogle testo={inCorso ? 'Salvo su Drive…' : 'Salva su Google Drive'} onClick={collega} disabled={inCorso} />
           </>
         ) : (
           <>

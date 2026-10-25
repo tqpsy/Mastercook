@@ -5,7 +5,7 @@ import { FoglioArticolo, unitaArticolo } from '../componenti/FoglioArticolo';
 import { Vuoto } from '../componenti/ui';
 import type { ArticoloValutato } from '../dominio/disponibilita';
 import type { Luogo } from '../dominio/tipi';
-import { useInventario, useNomeMembro, useOggi } from '../nucleo/derivati';
+import { useAutoreAltrui, useInventario, useOggi } from '../nucleo/derivati';
 import { emojiIngrediente } from '../rif/emoji';
 
 const LUOGHI: { id: Luogo; nome: string; emoji: string }[] = [
@@ -16,7 +16,7 @@ const LUOGHI: { id: Luogo; nome: string; emoji: string }[] = [
 
 export function ElencoArticoli({ articoli, onApri }: { articoli: ArticoloValutato[]; onApri: (v: ArticoloValutato) => void }) {
   const oggi = useOggi();
-  const nome = useNomeMembro();
+  const autore = useAutoreAltrui();
   return (
     <ul className="elenco">
       {articoli.map((v) => (
@@ -28,7 +28,7 @@ export function ElencoArticoli({ articoli, onApri }: { articoli: ArticoloValutat
             <span className="voce-testo">
               <span className="voce-titolo">{v.articolo.nome}</span>
               <span className="voce-dettaglio">
-                {unitaArticolo(v)} · {nome(v.articolo.creato_da)}
+                {[unitaArticolo(v), autore(v.articolo.creato_da)].filter(Boolean).join(' · ')}
               </span>
             </span>
             <span className="voce-destra">
