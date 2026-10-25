@@ -14,10 +14,11 @@ import { create } from 'zustand';
 import { aggiornaFile, ErroreDrive, scaricaFile, versioneFile } from '../piattaforma/drive';
 import { decifraFile, cifraFile } from '../piattaforma/cifratura';
 import { richiediToken, tokenValido } from '../piattaforma/google';
-import { chiaveDelNucleo, emailAccount, useAccount, VERSIONE_CHIAVE } from './account';
+import { accessoPerso, chiaveDelNucleo, emailAccount, proteggiChiaveSeInvitato, useAccount, VERSIONE_CHIAVE } from './account';
 import { useNucleo } from './contesto';
 import { sincronizzaFoto } from './fotoDrive';
 import { leggiNuclei } from './registro';
+import { useSessione } from '../stato/sessione';
 
 export type StatoSync = 'spento' | 'in_corso' | 'ok' | 'pausa' | 'offline' | 'errore';
 
@@ -92,6 +93,8 @@ export function MotoreSync() {
     let ancora = false;
     let attesa: ReturnType<typeof setTimeout> | undefined;
     const remoti: Record<'dati' | 'storico', Remoto> = { dati: {}, storico: {} };
+    // Un invitato a cui è stato tolto l'accesso riceve «file non trovato»: due volte di fila per esserne certi.
+    let nonTrovato = 0;
 
     const veloce = () => useSync.getState().veloce > 0;
 
@@ -120,10 +123,19 @@ export function MotoreSync() {
         const chiave = await chiaveDelNucleo(registrato);
         await sincronizzaDocumento(dati, file.dati, chiave, remoti.dati);
         await sincronizzaDocumento(storico, file.storico, chiave, remoti.storico);
+        nonTrovato = 0;
         // Le foto seguono i dati, ma un loro problema non ferma la sincronizzazione.
         if (!soloDati) await sincronizzaFoto(nucleo.id).catch(() => undefined);
+        await proteggiChiaveSeInvitato(nucleo.id).catch(() => undefined);
         useSync.setState({ stato: 'ok', ultima: new Date().toISOString(), messaggio: undefined });
       } catch (e) {
+        if (e instanceof ErroreDrive && e.stato === 404 && registrato.drive?.proprietario === false && ++nonTrovato >= 2) {
+          fermo = true;
+          await accessoPerso(nucleo.id);
+          alert(`Chi ha creato «${registrato.nome}» ti ha tolto l’accesso: i suoi dati sono stati tolti da questo telefono.`);
+          useSessione.getState().scegliNucleo(leggiNuclei()[0]?.id ?? null);
+          return;
+        }
         if (e instanceof ErroreDrive && !e.autorizzazione) {
           useSync.setState({
             stato: 'errore',

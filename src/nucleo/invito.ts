@@ -55,6 +55,8 @@ export function leggiInvito(hash: string): Invito | null {
 export async function invita(ctx: ContestoNucleo, email: string, nomeChiInvita: string): Promise<string> {
   const nucleo = leggiNuclei().find((n) => n.id === ctx.nucleo.id);
   if (!nucleo?.drive) throw new Error('nucleo non collegato');
+  // Solo chi ha creato il nucleo ha la chiave da mettere nel link.
+  if (!nucleo.drive.chiave || nucleo.drive.proprietario === false) throw new Error('solo_proprietario');
   const nome = (collezione(ctx.dati, 'meta').get('nucleo')?.get('nome') as string | undefined) ?? nucleo.nome;
   const foto = await assicuraFileFoto(nucleo.id);
   await condividi(nucleo.drive.cartella, email, `${nomeChiInvita} ti invita nel nucleo «${nome}» di Masterfood. Apri il link che ti ha mandato.`);
@@ -65,6 +67,7 @@ export async function invita(ctx: ContestoNucleo, email: string, nomeChiInvita: 
   );
 }
 
+/** Voce dell'archivio per chi è invitato: senza chiave, che resta solo protetta sul telefono. */
 const voceDa = (invito: Invito, membroId: string): VoceArchivio => ({
   id: invito.n,
   nome: invito.nome,
@@ -72,7 +75,6 @@ const voceDa = (invito: Invito, membroId: string): VoceArchivio => ({
   cartella: invito.c,
   dati: invito.d,
   storico: invito.s,
-  chiave: invito.k,
   foto: invito.f,
 });
 
@@ -89,7 +91,7 @@ export async function scaricaNucleoCondiviso(invito: Invito): Promise<void> {
     const confermati = await confermaFile(file, tokenValido()!, `Conferma i file di «${invito.nome}»`);
     if (!confermati.includes(invito.d) || !confermati.includes(invito.s)) throw new Error('file_non_confermati', { cause: e });
   }
-  await scaricaNucleo(voceDa(invito, ''));
+  await scaricaNucleo(voceDa(invito, ''), invito.k);
 }
 
 /** Membri del nucleo scaricato, per scegliere "chi sei". */
