@@ -7,7 +7,7 @@ import { valutaRicetta } from '../dominio/suggerimenti';
 import type { ArticoloInventario, ArticoloLista, EventoStorico } from '../dominio/tipi';
 import { collezione } from '../piattaforma/documento';
 import { RICETTE_SISTEMA_PER_ID } from '../rif/ricette';
-import { aggiungiAllaLista, aggiungiArticolo, buttaArticolo, consumaArticolo, hoCucinato, spuntaRiga } from './azioni';
+import { aggiungiAllaLista, aggiungiArticolo, buttaArticolo, consumaArticolo, hoCucinato, spuntaRiga, unaConfezioneInMeno, unaConfezioneInPiu } from './azioni';
 
 function nuovoCtx() {
   return { dati: new Y.Doc(), storico: new Y.Doc(), membroId: 'm1' };
@@ -28,6 +28,35 @@ describe('azioni sul nucleo', () => {
     buttaArticolo(ctx, inventario(ctx)[0]!, 'andato_a_male');
     expect(articoliPresenti(inventario(ctx), dataLocale())).toHaveLength(0);
     expect(eventi(ctx).map((e) => e.tipo).sort()).toEqual(['carico', 'consumo', 'spreco']);
+  });
+
+  it('due confezioni uguali diventano una riga ×2, e − toglie prima quella iniziata', () => {
+    const ctx = nuovoCtx();
+    const latte = { nome: 'Latte', ingrediente_id: 'ing:latte', unita: 'ml' as const, quantita: 1000, confezione: 1000, luogo: 'frigo' as const, origine: 'manuale' as const, unisci: true };
+    aggiungiArticolo(ctx, latte);
+    aggiungiArticolo(ctx, { ...latte, data_scadenza: '2026-01-01' });
+    expect(inventario(ctx)).toHaveLength(1);
+    expect(inventario(ctx)[0]!.data_scadenza).toBe('2026-01-01');
+    expect(articoliPresenti(inventario(ctx), dataLocale())[0]!.quantita).toBe(2000);
+    // In un altro posto o con un formato diverso resta separato.
+    aggiungiArticolo(ctx, { ...latte, luogo: 'dispensa' });
+    aggiungiArticolo(ctx, { ...latte, quantita: 500, confezione: 500 });
+    expect(inventario(ctx)).toHaveLength(3);
+
+    const [riga] = inventario(ctx);
+    consumaArticolo(ctx, riga!, 300);
+    unaConfezioneInMeno(ctx, inventario(ctx)[0]!);
+    expect(articoliPresenti(inventario(ctx), dataLocale()).find((v) => v.articolo.id === riga!.id)!.quantita).toBe(1000);
+    unaConfezioneInPiu(ctx, inventario(ctx)[0]!);
+    expect(articoliPresenti(inventario(ctx), dataLocale()).find((v) => v.articolo.id === riga!.id)!.quantita).toBe(2000);
+  });
+
+  it('il + fissa la confezione degli articoli caricati senza', () => {
+    const ctx = nuovoCtx();
+    aggiungiArticolo(ctx, { nome: 'Yogurt', ingrediente_id: 'ing:yogurt', unita: 'g', quantita: 125, luogo: 'frigo', origine: 'manuale' });
+    unaConfezioneInPiu(ctx, inventario(ctx)[0]!);
+    expect(inventario(ctx)[0]!.confezione).toBe(125);
+    expect(articoliPresenti(inventario(ctx), dataLocale())[0]!.quantita).toBe(250);
   });
 
   it('somma i consumi concorrenti di due dispositivi', () => {

@@ -18,6 +18,8 @@ function apri(): Promise<IDBDatabase> {
 export interface Visto {
   id: string;
   nome: string;
+  /** Quante confezioni o pezzi si vedono nella foto. */
+  pezzi?: number;
   /** Nel frigo: ripiano alto, centrale, basso, cassetto o portiera. */
   posizione?: string;
 }

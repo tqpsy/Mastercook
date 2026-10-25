@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { EtichettaScadenza } from '../componenti/EtichettaScadenza';
-import { FoglioArticolo, unitaArticolo } from '../componenti/FoglioArticolo';
-import { Vuoto } from '../componenti/ui';
+import { FoglioArticolo, formatoArticolo } from '../componenti/FoglioArticolo';
+import { mostraAvviso, Vuoto } from '../componenti/ui';
+import { misuraConfezione, numeroConfezioni } from '../dominio/confezioni';
 import type { ArticoloValutato } from '../dominio/disponibilita';
 import type { Luogo } from '../dominio/tipi';
+import { correggiQuantita, unaConfezioneInMeno, unaConfezioneInPiu } from '../nucleo/azioni';
+import { useNucleo } from '../nucleo/contesto';
 import { useAutoreAltrui, useInventario, useOggi } from '../nucleo/derivati';
 import { emojiIngrediente } from '../rif/emoji';
 
@@ -14,13 +17,40 @@ const LUOGHI: { id: Luogo; nome: string; emoji: string }[] = [
   { id: 'dispensa', nome: 'Dispensa', emoji: '🫙' },
 ];
 
+/** Il numerino accanto al prodotto, con − e + per sistemarlo al volo. */
+function Contatore({ valutato }: { valutato: ArticoloValutato }) {
+  const ctx = useNucleo();
+  const { articolo, quantita } = valutato;
+  const n = numeroConfezioni(quantita, misuraConfezione(articolo, quantita));
+  return (
+    <div className="contatore">
+      <button
+        type="button"
+        aria-label={`Uno in meno: ${articolo.nome}`}
+        onClick={() => {
+          unaConfezioneInMeno(ctx, articolo);
+          if (n === 1) mostraAvviso(`${articolo.nome}: finito`, () => correggiQuantita(ctx, articolo, quantita));
+        }}
+      >
+        −
+      </button>
+      <span className="contatore-numero" aria-live="polite" aria-label={`${n} ${articolo.nome}`}>
+        {n}
+      </span>
+      <button type="button" aria-label={`Uno in più: ${articolo.nome}`} onClick={() => unaConfezioneInPiu(ctx, articolo)}>
+        +
+      </button>
+    </div>
+  );
+}
+
 export function ElencoArticoli({ articoli, onApri }: { articoli: ArticoloValutato[]; onApri: (v: ArticoloValutato) => void }) {
   const oggi = useOggi();
   const autore = useAutoreAltrui();
   return (
     <ul className="elenco">
       {articoli.map((v) => (
-        <li key={v.articolo.id}>
+        <li key={v.articolo.id} className="con-contatore">
           <button type="button" className="voce" onClick={() => onApri(v)}>
             <span className="emoji" aria-hidden="true">
               {v.articolo.ricetta_id ? '🍲' : emojiIngrediente(v.articolo.ingrediente_id)}
@@ -28,13 +58,12 @@ export function ElencoArticoli({ articoli, onApri }: { articoli: ArticoloValutat
             <span className="voce-testo">
               <span className="voce-titolo">{v.articolo.nome}</span>
               <span className="voce-dettaglio">
-                {[unitaArticolo(v), autore(v.articolo.creato_da)].filter(Boolean).join(' · ')}
+                {[v.articolo.ricetta_id ? 'porzioni' : formatoArticolo(v), autore(v.articolo.creato_da)].filter(Boolean).join(' · ')}
               </span>
-            </span>
-            <span className="voce-destra">
               <EtichettaScadenza valutato={v} oggi={oggi} />
             </span>
           </button>
+          <Contatore valutato={v} />
         </li>
       ))}
     </ul>
