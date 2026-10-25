@@ -16,6 +16,10 @@ export function ChiaveApi({ compatta = false }: { compatta?: boolean }) {
         chiamate partono da questo telefono verso Google, e Masterfood non vede né la chiave né le foto. Senza chiave
         tutto il resto funziona, scontrini compresi (si leggono sul telefono).
       </p>
+      <p className="testo-tenue piccolo" hidden={compatta}>
+        Gemini è facoltativo e solo per maggiorenni (lo chiedono i termini di Google). Le foto e la dieta che analizzi arrivano a Google:
+        per chi è nell’UE Google non le usa per addestrare i suoi modelli. Non fotografare persone o documenti.
+      </p>
       <form
         className="riquadro"
         onSubmit={(e) => {

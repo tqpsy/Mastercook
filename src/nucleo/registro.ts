@@ -8,8 +8,11 @@ export interface NucleoLocale {
   nome: string;
   creato_il: string;
   modalita: 'locale' | 'drive' | 'locale_drive';
-  /** File del nucleo su Google Drive, quando è collegato a un account. */
-  drive?: { cartella: string; dati: string; storico: string; chiave: string; foto?: string };
+  /**
+   * File del nucleo su Google Drive, quando è collegato a un account. `chiave` (base64) c'è solo
+   * per chi ha creato il nucleo; chi è invitato la tiene protetta in archivioChiavi.
+   */
+  drive?: { cartella: string; dati: string; storico: string; chiave?: string; foto?: string; proprietario?: boolean };
 }
 
 const CHIAVE_NUCLEI = 'masterfood:nuclei';

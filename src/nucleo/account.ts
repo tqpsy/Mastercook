@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { cifraFile, esportaChiave, generaChiaveNucleo, importaChiave } from '../piattaforma/cifratura';
 import { applicaDocumentoCifrato, apriDocumentoLocale, collezione, esportaDocumentoCifrato } from '../piattaforma/documento';
+import { eliminaChiaveProtetta, leggiChiaveProtetta, salvaChiaveProtetta } from '../piattaforma/archivioChiavi';
 import { creaCartella, creaFile, eliminaFile, eMio, leggiArchivio, scaricaFile, scriviArchivio } from '../piattaforma/drive';
 import { esciDaGoogle, leggiEmail, richiediToken } from '../piattaforma/google';
 import type { ContestoNucleo } from './contesto';
@@ -66,10 +67,14 @@ export async function chiaveDelNucleo(nucleo: NucleoLocale): Promise<CryptoKey> 
   const nota = chiavi.get(nucleo.id);
   if (nota) return nota;
   if (!nucleo.drive) throw new Error('nucleo non collegato');
-  const chiave = await importaChiave(daBase64(nucleo.drive.chiave));
+  const chiave = nucleo.drive.chiave ? await importaChiave(daBase64(nucleo.drive.chiave)) : await leggiChiaveProtetta(nucleo.id);
+  if (!chiave) throw new Error('chiave_assente');
   chiavi.set(nucleo.id, chiave);
   return chiave;
 }
+
+/** Vero per chi ha creato il nucleo (la cartella è sul suo Drive). */
+export const eProprietario = (nucleoId: string) => leggiNuclei().find((n) => n.id === nucleoId)?.drive?.proprietario !== false;
 
 export interface VoceArchivio {
   id: string;
@@ -78,7 +83,8 @@ export interface VoceArchivio {
   cartella: string;
   dati: string;
   storico: string;
-  chiave: string;
+  /** Solo per i nuclei creati da questo account: gli invitati non conservano la chiave nel loro Drive. */
+  chiave?: string;
   /** File cifrato con le foto di frigo, freezer e dispensa. */
   foto?: string;
 }
@@ -117,21 +123,26 @@ export async function collegaNucleo(ctx: ContestoNucleo): Promise<NucleoLocale> 
     ...nucleo,
     nome,
     modalita: 'locale_drive',
-    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave, foto: voce.foto },
+    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave, foto: voce.foto, proprietario: true },
   };
   salvaNucleoLocale(collegato);
   return collegato;
 }
 
-/** Scarica da Drive i due documenti di un nucleo e lo registra su questo dispositivo. */
-export async function scaricaNucleo(voce: VoceArchivio): Promise<NucleoLocale> {
+/**
+ * Scarica da Drive i due documenti di un nucleo e lo registra su questo dispositivo.
+ * Per un nucleo condiviso da altri la chiave si conserva protetta e non in chiaro.
+ */
+export async function scaricaNucleo(voce: VoceArchivio, chiaveInvito?: string): Promise<NucleoLocale> {
+  const condiviso = !!chiaveInvito;
   const nucleo: NucleoLocale = {
     id: voce.id,
     nome: voce.nome,
     creato_il: new Date().toISOString(),
     modalita: 'locale_drive',
-    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, chiave: voce.chiave, foto: voce.foto },
+    drive: { cartella: voce.cartella, dati: voce.dati, storico: voce.storico, foto: voce.foto, ...(condiviso ? { proprietario: false } : { chiave: voce.chiave }) },
   };
+  if (condiviso) chiavi.set(voce.id, await salvaChiaveProtetta(voce.id, daBase64(chiaveInvito)));
   const chiave = await chiaveDelNucleo(nucleo);
   for (const tipo of ['dati', 'storico'] as const) {
     const { doc, persistenza } = await apriDocumentoLocale(voce.id, tipo);
@@ -157,6 +168,8 @@ export async function recuperaNuclei(): Promise<string | null> {
   let primo: string | null = null;
   let errore: unknown;
   for (const voce of archivio?.contenuto.nuclei ?? []) {
+    // Nucleo condiviso da altri: la chiave non è nel Drive di chi è invitato, serve il link d'invito.
+    if (!voce.chiave) continue;
     try {
       await scaricaNucleo(voce);
     } catch (e) {
@@ -192,6 +205,7 @@ export async function assicuraFileFoto(nucleoId: string): Promise<string> {
 export function eliminaNucleoDalDispositivo(id: string): void {
   rimuoviNucleoLocale(id);
   chiavi.delete(id);
+  void eliminaChiaveProtetta(id).catch(() => undefined);
   for (const tipo of ['dati', 'storico']) indexedDB.deleteDatabase(`masterfood-${id}-${tipo}`);
 }
 
@@ -233,4 +247,39 @@ export async function eliminaAccount(): Promise<void> {
   } catch {
     // archivio non disponibile
   }
+}
+
+/**
+ * Per gli invitati dalle versioni precedenti: la chiave era in chiaro sul telefono e nel loro Drive.
+ * Se la cartella non è di chi usa l'app, la chiave passa nell'archivio protetto e si toglie dal resto.
+ * Serve un token; si fa una volta per nucleo.
+ */
+export async function proteggiChiaveSeInvitato(nucleoId: string): Promise<void> {
+  const nucleo = leggiNuclei().find((n) => n.id === nucleoId);
+  if (!nucleo?.drive || nucleo.drive.proprietario !== undefined) return;
+  const mio = await eMio(nucleo.drive.cartella);
+  if (mio || !nucleo.drive.chiave) {
+    salvaNucleoLocale({ ...nucleo, drive: { ...nucleo.drive, proprietario: mio } });
+    return;
+  }
+  chiavi.set(nucleo.id, await salvaChiaveProtetta(nucleo.id, daBase64(nucleo.drive.chiave)));
+  const { chiave: _tolta, ...resto } = nucleo.drive;
+  void _tolta;
+  salvaNucleoLocale({ ...nucleo, drive: { ...resto, proprietario: false } });
+  const archivio = await leggiArchivio<Archivio>();
+  const voce = archivio?.contenuto.nuclei.find((n) => n.id === nucleoId);
+  if (voce?.chiave) {
+    const { chiave: _vecchia, ...senzaChiave } = voce;
+    void _vecchia;
+    await annotaNellArchivio(senzaChiave);
+  }
+}
+
+/** Chi ha creato il nucleo ha tolto l'accesso (o l'ha eliminato): via dati e chiave da qui e dall'account. */
+export async function accessoPerso(nucleoId: string): Promise<void> {
+  const archivio = await leggiArchivio<Archivio>().catch(() => null);
+  if (archivio?.contenuto.nuclei.some((n) => n.id === nucleoId)) {
+    await scriviArchivio({ versione: 1, nuclei: archivio.contenuto.nuclei.filter((n) => n.id !== nucleoId) } satisfies Archivio, archivio.id).catch(() => undefined);
+  }
+  eliminaNucleoDalDispositivo(nucleoId);
 }

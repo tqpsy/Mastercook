@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { googleConfigurato } from '../config';
-import { accedi, collegaNucleo, esci, useAccount } from '../nucleo/account';
+import { accedi, collegaNucleo, eliminaNucleoDalDispositivo, eProprietario, esci, useAccount } from '../nucleo/account';
 import { useNucleo } from '../nucleo/contesto';
-import { leggiNuclei, rimuoviNucleoLocale } from '../nucleo/registro';
+import { leggiNuclei } from '../nucleo/registro';
 import { useSessione } from '../stato/sessione';
 import { riprendiSync, sincronizzaOra, useSync, type StatoSync } from '../nucleo/sync';
 import { richiediToken, tokenValido } from '../piattaforma/google';
 import { BottoneGoogle } from './BottoneGoogle';
 import { InvitaFamiglia } from './InvitaFamiglia';
+import { PersoneConAccesso } from './PersoneConAccesso';
 import { mostraAvviso } from './ui';
 
 const DESCRIZIONE: Record<StatoSync, string> = {
@@ -130,10 +131,7 @@ export function Sincronizzazione() {
                   onClick={() => {
                     if (!confirm('Uscire e togliere i dati da questo dispositivo? Restano sul tuo Google Drive e li ritrovi accedendo di nuovo.')) return;
                     esci();
-                    for (const n of leggiNuclei().filter((x) => x.drive)) {
-                      rimuoviNucleoLocale(n.id);
-                      for (const tipo of ['dati', 'storico']) indexedDB.deleteDatabase(`masterfood-${n.id}-${tipo}`);
-                    }
+                    for (const n of leggiNuclei().filter((x) => x.drive)) eliminaNucleoDalDispositivo(n.id);
                     scegliNucleo(leggiNuclei()[0]?.id ?? null);
                   }}
                 >
@@ -144,7 +142,17 @@ export function Sincronizzazione() {
           </div>
         )}
       </div>
-      {collegato && email && <InvitaFamiglia />}
+      {collegato && email && eProprietario(ctx.nucleo.id) && (
+        <>
+          <InvitaFamiglia />
+          <PersoneConAccesso />
+        </>
+      )}
+      {collegato && email && !eProprietario(ctx.nucleo.id) && (
+        <p className="testo-tenue piccolo">
+          Sei ospite nel nucleo di un familiare: i dati sono sul suo Drive e solo chi l’ha creato può invitare o togliere persone.
+        </p>
+      )}
     </div>
   );
 }

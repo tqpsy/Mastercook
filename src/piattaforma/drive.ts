@@ -132,3 +132,22 @@ export async function eMio(id: string): Promise<boolean> {
   const r = await chiama(`${API}/${id}?fields=ownedByMe`);
   return ((await r.json()) as { ownedByMe?: boolean }).ownedByMe === true;
 }
+
+export interface Permesso {
+  id: string;
+  emailAddress?: string;
+  displayName?: string;
+  role: string;
+  type: string;
+}
+
+/** Chi ha accesso a un file o a una cartella creati dall'app (lo vede chi l'ha creata). */
+export async function elencaPermessi(id: string): Promise<Permesso[]> {
+  const r = await chiama(`${API}/${id}/permissions?fields=permissions(id,emailAddress,displayName,role,type)`);
+  return ((await r.json()) as { permissions?: Permesso[] }).permissions ?? [];
+}
+
+/** Toglie l'accesso: la persona non vede più la cartella né i file dentro. */
+export async function togliPermesso(id: string, permessoId: string): Promise<void> {
+  await chiama(`${API}/${id}/permissions/${permessoId}`, { method: 'DELETE' });
+}
