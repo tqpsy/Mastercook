@@ -38,6 +38,21 @@ export interface Risultato {
 
 const NOMI = INGREDIENTI.map((ing) => ({ ing, nomi: [ing.nome, ...ing.sinonimi].map(normalizza) }));
 
+const PAROLE_VUOTE = new Set(['di', 'del', 'della', 'al', 'alla', 'all', 'allo', 'd', 'in', 'e', 'con', 'per', 'da']);
+const parole = (testo: string) => testo.split(' ').filter((p) => p && !PAROLE_VUOTE.has(p));
+
+/**
+ * Tutte le parole del nome stanno nella query ("mozzarella bufala camp" contiene "mozzarella di bufala"):
+ * 0,85 se la query comincia con il nome, 0,75 altrimenti, più un piccolo vantaggio per i nomi che ne coprono
+ * più parole, così la voce precisa vince su quella generica ("mozzarella").
+ */
+function contenimento(q: string, nome: string): number {
+  const pq = parole(q);
+  const pn = parole(nome);
+  if (pn.length === 0 || !pn.every((p) => pq.includes(p))) return 0;
+  return (pq[0] === pn[0] ? 0.85 : 0.75) + 0.05 * (pn.length / pq.length);
+}
+
 export function cercaIngredienti(query: string, limite = 8, alias: ReadonlyMap<string, string> = new Map()): Risultato[] {
   const q = normalizza(query);
   if (!q) return [];
@@ -49,9 +64,8 @@ export function cercaIngredienti(query: string, limite = 8, alias: ReadonlyMap<s
     for (const nome of nomi) {
       let c: number;
       if (nome === q) c = 0.95;
-      else if (nome.startsWith(q) || q.startsWith(nome + ' ')) c = 0.85;
-      else if (nome.split(' ').some((parola) => parola.startsWith(q)) || q.split(' ').includes(nome)) c = 0.75;
-      else c = somiglianza(q, nome) * 0.85;
+      else if (nome.startsWith(q)) c = 0.85;
+      else c = Math.max(contenimento(q, nome), nome.split(' ').some((parola) => parola.startsWith(q)) ? 0.75 : somiglianza(q, nome) * 0.85);
       migliore = Math.max(migliore, c);
     }
     if (migliore >= 0.35) risultati.push({ ingrediente: ing, confidenza: migliore });

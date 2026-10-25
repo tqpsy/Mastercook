@@ -8,7 +8,7 @@
  * Le grammature della dieta decidono la porzione; quello che nessuna ricetta copre (frutta, pane,
  * yogurt…) resta come voce a parte del menù.
  */
-import { ingrediente } from '../rif/ingredienti';
+import { antenati, ingrediente } from '../rif/ingredienti';
 import { GRUPPI_PRINCIPALI, NOME_GRUPPO, descriviVoce, gruppoIngrediente, gruppiVoce, type GruppoAlimentare } from './dieta';
 import type { TipoPasto } from './id';
 import { normalizza } from './ricerca';
@@ -52,8 +52,7 @@ export function profiloRicetta(ricetta: Ricetta): ProfiloRicetta {
     if (riga.opzionale) continue;
     const ing = ingrediente(riga.ingrediente_id);
     if (!ing) continue;
-    ingredienti.add(ing.id);
-    if (ing.genitore) ingredienti.add(ing.genitore);
+    for (const id of antenati(ing.id)) ingredienti.add(id);
     const gruppo = gruppoIngrediente(ing);
     if (!gruppo || !GRUPPI_PRINCIPALI.has(gruppo)) continue;
     const grammi = ((ing.unita === 'pz' ? (riga.quantita ?? 0) * (ing.peso_pz ?? 60) : (riga.quantita ?? 0)) / porzioni);
@@ -101,9 +100,14 @@ interface Candidata {
  * Una ricetta copre una voce se ne ha il gruppo. Per la verdura indicata per nome
  * ("spinaci 200 g") serve proprio quella: i pomodorini del merluzzo in umido non bastano.
  */
+/** La ricetta usa quell'ingrediente, uno più preciso (spaghetti per "pasta") o uno più generico (pasta per "pasta integrale"). */
+function haIngrediente(profilo: ProfiloRicetta, id: string): boolean {
+  return antenati(id).some((a) => profilo.ingredienti.has(a));
+}
+
 function copre(profilo: ProfiloRicetta, voce: VoceDieta): boolean {
   if (!gruppiVoce(voce).some((g) => GRUPPI_PRINCIPALI.has(g) && profilo.gruppi.has(g))) return false;
-  if (voce.gruppo === 'verdura' && voce.ingrediente_id) return profilo.ingredienti.has(voce.ingrediente_id);
+  if (voce.gruppo === 'verdura' && voce.ingrediente_id) return haIngrediente(profilo, voce.ingrediente_id);
   return true;
 }
 
@@ -125,7 +129,7 @@ function punteggio(
     // Alimenti fuori dieta: una proteina in più è grave, un po' di verdura no.
     p -= PROTEINE.has(g) ? 2 : g === 'cereali' || g === 'patate' ? 1.2 : 0.3;
   }
-  for (const v of voci) if (v.ingrediente_id && profilo.ingredienti.has(v.ingrediente_id)) p += 0.6;
+  for (const v of voci) if (v.ingrediente_id && haIngrediente(profilo, v.ingrediente_id)) p += 0.6;
   // La dieta nomina il piatto ("pasta e ceci"): vale più di una ricetta che ha solo gli stessi gruppi.
   const titolo = normalizza(ricetta.titolo);
   for (const v of voci) {

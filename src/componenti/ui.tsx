@@ -1,8 +1,9 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { create } from 'zustand';
 import { cercaIngredienti } from '../dominio/ricerca';
-import type { Ingrediente } from '../rif/ingredienti';
-import { emojiIngrediente } from '../rif/emoji';
+import { catalogoPerReparto, type Ingrediente } from '../rif/ingredienti';
+import { emojiIngrediente, emojiReparto } from '../rif/emoji';
+import { NOME_REPARTO, type Reparto } from '../rif/reparti';
 import { IconaCerca, IconaChiudi } from './Icone';
 
 // ───────── Foglio (pannello dal basso) ─────────
@@ -175,6 +176,7 @@ export function SelettoreIngrediente({
           }}
         />
       </label>
+      {!testo.trim() && <SfogliaCatalogo onScegli={onScegli} />}
       {testo.trim() && (
         <ul className="elenco">
           {risultati.map(({ ingrediente: ing }) => (
@@ -221,6 +223,48 @@ export function SelettoreIngrediente({
           )}
         </ul>
       )}
+    </div>
+  );
+}
+
+const CATALOGO = catalogoPerReparto();
+
+/** Il catalogo per reparto e sottocategoria, per chi non sa che nome cercare. */
+function SfogliaCatalogo({ onScegli }: { onScegli: (ing: Ingrediente) => void }) {
+  const [aperto, setAperto] = useState(false);
+  const [reparto, setReparto] = useState<Reparto | null>(null);
+  if (!aperto) {
+    return (
+      <button type="button" className="bottone-testo" onClick={() => setAperto(true)}>
+        Sfoglia per categoria
+      </button>
+    );
+  }
+  const scelto = CATALOGO.find((r) => r.reparto === reparto);
+  return (
+    <div className="sfoglia">
+      <div className="chips scorrevoli" role="group" aria-label="Reparti">
+        {CATALOGO.map((r) => (
+          <button key={r.reparto} type="button" className="chip" aria-pressed={r.reparto === reparto} onClick={() => setReparto(r.reparto === reparto ? null : r.reparto)}>
+            <span aria-hidden="true">{emojiReparto(r.reparto)}</span> {NOME_REPARTO[r.reparto]}
+          </button>
+        ))}
+      </div>
+      {scelto?.sottocategorie.map((sotto) => (
+        <div key={sotto.nome} className="sfoglia-gruppo">
+          <h3>{sotto.nome}</h3>
+          <div className="chips">
+            {sotto.voci.map((ing) => (
+              <button key={ing.id} type="button" className="chip" onClick={() => onScegli(ing)}>
+                <span aria-hidden="true">{emojiIngrediente(ing.id)}</span> {ing.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button type="button" className="bottone-testo" onClick={() => (setAperto(false), setReparto(null))}>
+        Chiudi le categorie
+      </button>
     </div>
   );
 }

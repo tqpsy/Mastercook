@@ -16,14 +16,21 @@ export interface ProdottoVisto {
   posizione?: string;
 }
 
+/** Il catalogo distingue i tipi: meglio "gorgonzola" o "vongole" che "formaggio" o "pesce". */
+const PRECISIONE =
+  'Se si riconosce il tipo, usa il nome preciso e non la categoria: "gorgonzola", "grana padano", "mozzarella di bufala" e non "formaggio"; ' +
+  '"vongole", "cozze", "polpo", "gamberi", "salmone" e non "pesce"; "rigatoni", "orecchiette", "tortellini" e non "pasta"; "salame", "speck" e non "salumi". ';
+
 const ISTRUZIONI =
   'Elenca gli alimenti visibili in questa foto di un frigorifero, di un freezer o di una dispensa (può essere un solo ripiano, un cassetto o la portiera). ' +
   'Usa nomi generici in italiano (es. "latte", "uova", "zucchine", non le marche) e una stima della quantità visibile. ' +
+  PRECISIONE +
   'In "pezzi" metti quante confezioni o pezzi separati di quell\'alimento vedi (2 bottiglie di latte = 2, 3 carote = 3). ' +
   'Rispondi solo con JSON: [{"nome": string, "quantita": string, "pezzi": number}]. Se non vedi alimenti rispondi [].';
 const ISTRUZIONI_FRIGO =
   'Elenca gli alimenti visibili in questa foto di un frigorifero (può essere un solo ripiano, un cassetto o la portiera). ' +
   'Usa nomi generici in italiano (es. "latte", "uova", "petto di pollo", non le marche) e una stima della quantità visibile. ' +
+  PRECISIONE +
   'In "pezzi" metti quante confezioni o pezzi separati di quell\'alimento vedi (2 bottiglie di latte = 2, 3 carote = 3). ' +
   'Per ognuno indica dove si trova: "ripiano alto", "ripiano centrale", "ripiano basso" (quello più in basso, sopra i cassetti), "cassetto" o "portiera"; ' +
   'se non si capisce usa "non so". Rispondi solo con JSON: [{"nome": string, "quantita": string, "pezzi": number, "posizione": string}]. Se non vedi alimenti rispondi [].';

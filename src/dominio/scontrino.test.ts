@@ -43,6 +43,12 @@ describe('scontrino', () => {
     expect(abbinaRiga('LATTE PS 1L', new Map(), new Set())).toMatchObject({ esito: 'confermato', migliore: { ingrediente: { id: 'ing:latte' } } });
     expect(abbinaRiga('ZUCCHINE', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:zucchina');
     expect(abbinaRiga('SHOPPER', new Map(), new Set()).esito).toBe('da_scegliere');
+    expect(abbinaRiga('GORG. DOLCE DOP 200G', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:gorgonzola');
+    expect(abbinaRiga('VONG VERACI 1KG', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:vongole');
+    expect(abbinaRiga('MOZZ BUFALA CAMP 250G', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:mozzarella_bufala');
+    expect(abbinaRiga('GRANA PADANO GRAT', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:grana_padano');
+    expect(abbinaRiga('RIGAT N89 500G', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:rigatoni');
+    expect(abbinaRiga('GAMB SURG 400G', new Map(), new Set()).migliore?.ingrediente.id).toBe('ing:gamberi_surgelati');
     expect(abbinaRiga('XYZ BRAND 3', new Map([['xyz brand', 'ing:biscotti']]), new Set()).migliore?.ingrediente.id).toBe('ing:biscotti');
   });
 });

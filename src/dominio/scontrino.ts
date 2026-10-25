@@ -36,6 +36,15 @@ const ABBREVIAZIONI: Record<string, string> = {
   pomod: 'pomodori', patat: 'patate', banan: 'banane', bisc: 'biscotti', choc: 'cioccolato', cioc: 'cioccolato', uht: 'latte uht',
   evo: 'olio evo', ext: 'extra', verg: 'vergine', sp: 'spaghetti', spagh: 'spaghetti', pan: 'pane', grat: 'grattugiato',
   ric: 'ricotta', masc: 'mascarpone', pass: 'passata', pel: 'pelati', toma: 'pomodori', sals: 'salsiccia', pet: 'petto', poll: 'pollo',
+  gorg: 'gorgonzola', gorgonz: 'gorgonzola', provol: 'provolone', scam: 'scamorza', stracch: 'stracchino',
+  pecor: 'pecorino', bufal: 'bufala', burr: 'burrata', fiordil: 'fiordilatte', sottil: 'sottilette', emm: 'emmental',
+  vong: 'vongole', gamb: 'gamberi', gamber: 'gamberi', mazz: 'mazzancolle', calam: 'calamari', polp: 'polpo', sepp: 'seppie',
+  salm: 'salmone', merl: 'merluzzo', baccal: 'baccala', bast: 'bastoncini', surg: 'surgelati', aff: 'affumicato', affum: 'affumicato',
+  mort: 'mortadella', bres: 'bresaola', panc: 'pancetta', wurst: 'wurstel', macin: 'macinato',
+  bist: 'bistecca', spezz: 'spezzatino', brac: 'braciole', tacch: 'tacchino',
+  rigat: 'rigatoni', farf: 'farfalle', ling: 'linguine', orecch: 'orecchiette', integr: 'integrale', tort: 'tortellini',
+  fagiol: 'fagioli', borl: 'borlotti', lentic: 'lenticchie',
+  ammorb: 'ammorbidente', cartaig: 'carta igienica',
 };
 
 export function espandi(testo: string): string {

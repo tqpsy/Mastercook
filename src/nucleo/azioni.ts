@@ -25,7 +25,7 @@ import type {
   UnitaCanonica,
 } from '../dominio/tipi';
 import { collezione, eliminaEntita, inserisciEntita, modificaEntita, type Entita } from '../piattaforma/documento';
-import { ingrediente } from '../rif/ingredienti';
+import { antenati, ingrediente } from '../rif/ingredienti';
 import { REGOLA_FREEZER_COTTI, REGOLA_SCONGELATO, regolaConservazione } from '../rif/conservazione';
 import type { ContestoNucleo } from './contesto';
 
@@ -418,7 +418,7 @@ export function hoCucinato(ctx: Ctx, articoli: readonly ArticoloInventario[], co
         if (!ing || ing.base || riga.richiesto <= 0) continue;
         let daScaricare = riga.richiesto;
         const candidati = articoli
-          .filter((a) => !a.eliminato_il && a.ingrediente_id && (a.ingrediente_id === ing.id || ingrediente(a.ingrediente_id)?.genitore === ing.id))
+          .filter((a) => !a.eliminato_il && a.ingrediente_id && antenati(a.ingrediente_id).includes(ing.id))
           .map((a) => ({ a, q: quantitaDisponibile(a.movimenti, a.unita), s: a.conservare_fino ?? a.data_scadenza ?? '9999' }))
           .filter((x) => x.q > 0)
           .sort((x, y) => x.s.localeCompare(y.s));
@@ -485,8 +485,8 @@ export function caricaScontrino(ctx: Ctx, righe: readonly RigaConfermata[], nego
         prezzo: r.prezzo,
       });
       modificaArticolo(ctx, id, { acquisto_id: acquistoId });
-      // Spunta automatica: stesso ingrediente, poi ingrediente "padre" (spaghetti → pasta).
-      for (const candidato of [ing.id, ing.genitore].filter(Boolean) as string[]) {
+      // Spunta automatica: stesso ingrediente, poi i più generici (mazzancolle → gamberi → frutti di mare).
+      for (const candidato of antenati(ing.id)) {
         const riga = lista.get(idArticoloLista(candidato));
         if (riga && !riga.get('eliminato_il') && riga.get('stato') === 'da_comprare') {
           modificaEntita(riga, { stato: 'preso', modo_spunta: 'scontrino', prezzo_pagato: r.prezzo }, ctx.membroId);

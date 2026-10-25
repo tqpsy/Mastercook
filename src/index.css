@@ -622,6 +622,32 @@ code {
   white-space: nowrap;
 }
 
+/* Catalogo da sfogliare sotto la ricerca degli ingredienti. */
+.sfoglia {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.sfoglia > .chips {
+  width: calc(100% + 32px);
+}
+
+.sfoglia-gruppo {
+  display: grid;
+  gap: 6px;
+}
+
+.sfoglia-gruppo h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.sfoglia-gruppo .chip {
+  white-space: normal;
+  text-align: left;
+}
+
 /* Fila di chip che scorre di lato invece di andare a capo. */
 .chips.scorrevoli {
   flex-wrap: nowrap;
