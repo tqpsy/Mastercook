@@ -15,6 +15,7 @@ import { sincronizzaFoto, useArrivoFoto } from '../../nucleo/fotoDrive';
 import { leggiChiave } from '../../piattaforma/chiaviApi';
 import { immagineDaFile } from '../../piattaforma/fotocamera';
 import { riconosciProdotti, type ProdottoVisto } from '../../piattaforma/gemini';
+import { messaggioQuotaFinita, QuotaGemini } from '../../componenti/QuotaGemini';
 import { POSIZIONI } from '../../dominio/sistemazioneFrigo';
 import { ConsigliFrigo } from '../../componenti/ConsigliFrigo';
 import { emojiIngrediente } from '../../rif/emoji';
@@ -124,7 +125,8 @@ export function FotoDispensa() {
       await aggiornaFoto(id, { visti, esito: 'ok' });
     } catch (e) {
       await aggiornaFoto(id, { esito: 'errore' });
-      setErrore(MESSAGGI_ERRORE[(e as Error).message] ?? 'Il riconoscimento di una foto non è riuscito: riprova con il pulsante «Analizza».');
+      const codice = (e as Error).message;
+      setErrore(codice === 'quota_giorno' ? messaggioQuotaFinita() : MESSAGGI_ERRORE[codice] ?? 'Il riconoscimento di una foto non è riuscito: riprova con il pulsante «Analizza».');
     } finally {
       setAnalizzo((x) => {
         const y = new Set(x);
@@ -278,6 +280,7 @@ export function FotoDispensa() {
           </button>
         )}
       </div>
+      <QuotaGemini />
       {!conChiave && (
         <p className="testo-tenue piccolo">
           Con una chiave Gemini personale (gratuita) Masterfood riconosce i prodotti nelle foto e ti propone di aggiungerli.{' '}
@@ -290,7 +293,7 @@ export function FotoDispensa() {
         </p>
       )}
       {errore && (
-        <div className="riquadro avviso">
+        <div className="riquadro avviso" role="alert">
           <p>{errore}</p>
         </div>
       )}

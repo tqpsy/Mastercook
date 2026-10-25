@@ -461,3 +461,39 @@ export function salvaAlias(ctx: Ctx, testo: string, ingredienteId: string): void
   if (esistente) modificaEntita(esistente, { mappa }, ctx.membroId);
   else inserisciEntita(impostazioni, { id: 'alias', mappa }, ctx.membroId);
 }
+
+// ───────────── Cestino ─────────────
+
+/** Le collezioni che si possono recuperare dal cestino. */
+export const COLLEZIONI_CESTINO = ['inventario', 'ricette', 'membri'] as const;
+export type CollezioneCestino = (typeof COLLEZIONI_CESTINO)[number];
+export const GIORNI_CESTINO = 30;
+
+export function ripristinaDalCestino(ctx: Ctx, nome: CollezioneCestino, id: string): void {
+  const e = entita(ctx, nome, id);
+  if (e) modificaEntita(e, { eliminato_il: undefined }, ctx.membroId);
+}
+
+export function eliminaDefinitivamente(ctx: Ctx, nome: CollezioneCestino, id: string): void {
+  const coll = collezione(ctx.dati, nome);
+  if (coll.get(id)?.get('eliminato_il')) coll.delete(id);
+}
+
+/** Toglie per sempre quello che è nel cestino da più di 30 giorni; restituisce quanti elementi. */
+export function svuotaCestinoScaduto(ctx: Pick<Ctx, 'dati'>, adesso = new Date()): number {
+  const limite = new Date(adesso.getTime() - GIORNI_CESTINO * 86_400_000).toISOString();
+  let tolti = 0;
+  ctx.dati.transact(() => {
+    for (const nome of [...COLLEZIONI_CESTINO, 'liste'] as const) {
+      const coll = collezione(ctx.dati, nome);
+      for (const [id, e] of [...coll.entries()]) {
+        const il = e.get('eliminato_il');
+        if (typeof il === 'string' && il < limite) {
+          coll.delete(id);
+          tolti++;
+        }
+      }
+    }
+  });
+  return tolti;
+}

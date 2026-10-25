@@ -60,20 +60,24 @@ export function AvvisoFlottante() {
     const t = setTimeout(chiudi, avviso.annulla ? 6000 : 3500);
     return () => clearTimeout(t);
   }, [avviso, chiudi]);
-  if (!avviso) return null;
+  // La regione resta sempre nella pagina: i lettori di schermo annunciano solo i cambi di una regione già presente.
   return (
-    <div className="avviso-flottante" role="status" key={avviso.id}>
-      <span>{avviso.testo}</span>
-      {avviso.annulla && (
-        <button
-          type="button"
-          onClick={() => {
-            avviso.annulla!();
-            chiudi();
-          }}
-        >
-          Annulla
-        </button>
+    <div role="status" aria-live="polite">
+      {avviso && (
+        <div className="avviso-flottante" key={avviso.id}>
+          <span>{avviso.testo}</span>
+          {avviso.annulla && (
+            <button
+              type="button"
+              onClick={() => {
+                avviso.annulla!();
+                chiudi();
+              }}
+            >
+              Annulla
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

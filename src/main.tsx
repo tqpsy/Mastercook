@@ -3,6 +3,7 @@ import '@fontsource-variable/figtree';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { Paracadute } from './componenti/Paracadute';
 import './index.css';
 import { applicaTema, useTema } from './stato/tema';
 
@@ -14,6 +15,8 @@ navigator.storage?.persist?.().catch(() => {});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <Paracadute>
+      <App />
+    </Paracadute>
   </StrictMode>,
 );

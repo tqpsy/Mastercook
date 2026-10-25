@@ -1458,3 +1458,49 @@ fieldset.campo {
   flex-direction: column;
   gap: 6px;
 }
+
+/* ───────── Prova gratuita di Gemini ───────── */
+
+.quota-gemini {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.quota-gemini-testa {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.progresso.quasi span {
+  background: var(--ocra);
+}
+
+.progresso.pieno span {
+  background: var(--rosso);
+}
+
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--oliva-scura);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ───────── Meno movimento per chi lo chiede al telefono ───────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

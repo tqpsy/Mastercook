@@ -95,7 +95,7 @@ export function GuidaIniziale({ onFine }: { onFine: () => void }) {
                 }}
               />
             ) : null}
-            {errore && <p className="esito-errore">{errore}</p>}
+            {errore && <p className="esito-errore" role="alert">{errore}</p>}
             <button type="button" className={suDrive ? 'bottone pieno' : 'bottone secondario'} onClick={avanti}>
               {suDrive ? 'Avanti' : 'Lo faccio dopo'}
             </button>

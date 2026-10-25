@@ -322,7 +322,7 @@ export function Scontrino() {
         </div>
       )}
       {errore && (
-        <div className="riquadro avviso">
+        <div className="riquadro avviso" role="alert">
           <p>{errore}</p>
         </div>
       )}

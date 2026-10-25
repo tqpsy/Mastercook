@@ -4,6 +4,7 @@
  * agli ingredienti sul dispositivo e confermata dall'utente: la foto non rimuove mai nulla.
  */
 import { leggiChiave } from './chiaviApi';
+import { eQuotaGiornaliera, quotaEsaurita, registraRichiesta, segnaEsaurita } from './quotaGemini';
 
 export interface ProdottoVisto {
   nome: string;
@@ -29,6 +30,8 @@ type Parte = { text: string } | { inline_data: { mime_type: string; data: string
 async function chiediJson(parti: Parte[]): Promise<unknown> {
   const chiave = leggiChiave('gemini');
   if (!chiave) throw new Error('chiave');
+  // Google ha già detto che per oggi la prova è finita: inutile riprovare fino all'azzeramento.
+  if (quotaEsaurita()) throw new Error('quota_giorno');
   for (const modello of MODELLI) {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modello}:generateContent`, {
       method: 'POST',
@@ -39,7 +42,13 @@ async function chiediJson(parti: Parte[]): Promise<unknown> {
       }),
     });
     if (r.status === 404) continue;
-    if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'chiave' : r.status === 429 ? 'quota' : 'rete');
+    if (r.status === 429) {
+      if (!eQuotaGiornaliera(await r.text().catch(() => ''))) throw new Error('quota');
+      segnaEsaurita();
+      throw new Error('quota_giorno');
+    }
+    if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'chiave' : 'rete');
+    registraRichiesta();
     const risposta = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     return JSON.parse(risposta.candidates?.[0]?.content?.parts?.[0]?.text ?? 'null') as unknown;
   }

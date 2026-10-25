@@ -1,6 +1,8 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { svuotaCestinoScaduto } from '../nucleo/azioni';
 import { useNucleo } from '../nucleo/contesto';
+import { preparaOcrOffline } from '../piattaforma/ocr';
 import { AggiornamentoPwa } from './AggiornamentoPwa';
 import { usePromemoriaScadenze } from './AvvisiScadenza';
 import { AvvisoSync } from './AvvisoSync';
@@ -10,13 +12,20 @@ import { IconaImpostazioni } from './Icone';
 import { AvvisoFlottante } from './ui';
 
 export function Struttura() {
-  const { nucleo } = useNucleo();
+  const ctx = useNucleo();
+  const { nucleo } = ctx;
   const { pathname } = useLocation();
   usePromemoriaScadenze();
   const [guida, setGuida] = useState(() => guidaDaMostrare(nucleo.id));
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+  // Una volta per apertura: via dal cestino ciò che ha più di 30 giorni, e motore degli scontrini pronto anche offline.
+  useEffect(() => {
+    svuotaCestinoScaduto(ctx);
+    preparaOcrOffline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nucleo.id]);
   return (
     <div className="app">
       <header className="intestazione">

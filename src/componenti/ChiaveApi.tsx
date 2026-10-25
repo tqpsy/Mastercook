@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { leggiChiave, scriviChiave } from '../piattaforma/chiaviApi';
 import { verificaChiave, type EsitoVerifica } from '../piattaforma/verificaChiave';
+import { QuotaGemini } from './QuotaGemini';
 import { mostraAvviso } from './ui';
 
 /** `compatta`: senza titolo né spiegazione, per la guida del primo avvio. */
@@ -68,6 +69,7 @@ export function ChiaveApi({ compatta = false }: { compatta?: boolean }) {
           </p>
         )}
       </form>
+      {!compatta && <QuotaGemini modificabile />}
     </div>
   );
 }

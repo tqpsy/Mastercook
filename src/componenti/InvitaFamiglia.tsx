@@ -56,7 +56,7 @@ export function InvitaFamiglia() {
         <button type="submit" className="bottone" disabled={inCorso || !email.trim()}>
           {inCorso ? 'Condivido…' : 'Invita'}
         </button>
-        {errore && <p className="esito-errore">{errore}</p>}
+        {errore && <p className="esito-errore" role="alert">{errore}</p>}
         {link && (
           <>
             <p className="esito-ok">✓ Cartella condivisa. Manda questo link a chi hai invitato:</p>

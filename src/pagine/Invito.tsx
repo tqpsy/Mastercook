@@ -60,7 +60,7 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
           }
           onInvia={(dati) => entra({ nuovo: dati }, passo.email)}
         />
-        {errore && <p className="esito-errore">{errore}</p>}
+        {errore && <p className="esito-errore" role="alert">{errore}</p>}
       </main>
     );
   }
@@ -83,7 +83,7 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
             {liberi.length ? 'Non ci sono: crea il mio profilo' : 'Crea il mio profilo'}
           </button>
         </div>
-        {errore && <p className="esito-errore">{errore}</p>}
+        {errore && <p className="esito-errore" role="alert">{errore}</p>}
       </main>
     );
   }
@@ -119,7 +119,7 @@ export function Invito({ invito, onFatto }: { invito: DatiInvito; onFatto: () =>
         }}
       />
       <p className="testo-tenue piccolo">Usa l’account Google a cui {invito.da} ha mandato l’invito. Google potrebbe chiederti di confermare i file del nucleo.</p>
-      {errore && <p className="esito-errore">{errore}</p>}
+      {errore && <p className="esito-errore" role="alert">{errore}</p>}
       {leggiNuclei().length > 0 && (
         <button
           type="button"
